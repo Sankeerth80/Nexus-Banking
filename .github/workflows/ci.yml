@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install frontend dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: apps/web
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run frontend E2E
+        working-directory: apps/web
+        run: npm run e2e
+
+      - name: Install backend dependencies
+        working-directory: apps/api
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: npm run prisma:generate
+
+      - name: Lint backend
+        working-directory: apps/api
+        run: npm run lint
+
+      - name: Test backend
+        working-directory: apps/api
+        run: npm test -- --runInBand
+
+      - name: Build backend
+        working-directory: apps/api
+        run: npm run build

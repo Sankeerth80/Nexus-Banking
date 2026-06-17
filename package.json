@@ -1,0 +1,29 @@
+{
+  "name": "nexus-banking",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo portfolio net banking platform with user and master admin portals.",
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "scripts": {
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "npm --prefix apps/api run start:dev",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "npm --prefix apps/web run build",
+    "build:api": "npm --prefix apps/api run build",
+    "lint": "npm run lint:web && npm run lint:api",
+    "lint:web": "npm --prefix apps/web run lint",
+    "lint:api": "npm --prefix apps/api run lint",
+    "test": "npm run test:api && npm run test:e2e",
+    "test:api": "npm --prefix apps/api run test",
+    "test:e2e": "npm --prefix apps/web run e2e",
+    "prisma:generate": "npm --prefix apps/api run prisma:generate",
+    "check:connections": "node scripts/check-connections.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  }
+}
