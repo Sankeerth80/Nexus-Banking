@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CustomerStatus {
+  DRAFT
+  PENDING
+  KYC_REVIEW
+  COMPLIANCE_REVIEW
+  RISK_REVIEW
+  BRANCH_MANAGER_REVIEW
+  APPROVED
+  REJECTED
+  FROZEN
+  SUSPENDED
+}
+
+enum EmployeeRole {
+  CEO
+  BRANCH_MANAGER
+  ASSISTANT_MANAGER
+  RELATIONSHIP_MANAGER
+  KYC_OFFICER
+  COMPLIANCE_OFFICER
+  RISK_OFFICER
+  LOAN_OFFICER
+  TREASURY_OFFICER
+  FINANCE_OFFICER
+  AUDITOR
+  SUPPORT_OFFICER
+  IT_ADMINISTRATOR
+  SECURITY_ADMINISTRATOR
+}
+
+enum AccountType {
+  SAVINGS
+  CURRENT
+  SALARY
+  FIXED_DEPOSIT
+  RECURRING_DEPOSIT
+  NRE
+  NRO
+}
+
+enum AccountStatus {
+  ACTIVE
+  DEACTIVATED
+}
+
+enum CardType {
+  DEBIT
+  CREDIT
+}
+
+enum CardStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  FROZEN
+  REPLACEMENT_REQUESTED
+}
+
+enum TransferType {
+  OWN_ACCOUNT
+  INTERNAL
+  NEFT_SIMULATION
+  RTGS_SIMULATION
+  IMPS_SIMULATION
+  UPI_SIMULATION
+  SCHEDULED
+}
+
+enum TransferStatus {
+  DRAFT
+  OTP_PENDING
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  FAILED
+  RISK_REVIEW
+  CANCELLED
+}
+
+enum TicketCategory {
+  LOGIN
+  TRANSFER
+  CARD
+  FRAUD
+  COMPLAINT
+  TECHNICAL
+}
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Customer {
+  id             String         @id @default(uuid())
+  customerNumber String         @unique
+  fullName       String
+  email          String         @unique
+  phone          String         @unique
+  status         CustomerStatus @default(DRAFT)
+  passwordHash   String?
+  twoFactorSecret String?
+  twoFactorEnabled Boolean @default(false)
+  emailVerified  Boolean @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  accounts       Account[]
+  cards          Card[]
+  beneficiaries  Beneficiary[]
+  transfers      Transfer[]
+  kycRequest     KycRequest?
+  notifications  Notification[]
+  tickets        Ticket[]
+  auditLogs      AuditLog[]
+
+  @@index([status])
+}
+
+model Employee {
+  id        String       @id @default(uuid())
+  employeeCode String    @unique
+  fullName  String
+  email     String       @unique
+  role      EmployeeRole
+  active    Boolean      @default(true)
+  passwordHash   String?
+  twoFactorSecret String?
+  twoFactorEnabled Boolean @default(false)
+  emailVerified  Boolean @default(false)
+  createdAt DateTime     @default(now())
+  auditLogs AuditLog[]
+  assignedTickets Ticket[] @relation("AssignedTickets")
+
+  @@index([role])
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  city      String
+  state     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Account {
+  id            String        @id @default(uuid())
+  accountNumber String        @unique
+  type          AccountType
+  currency      String        @default("INR")
+  balance       Decimal       @db.Decimal(18, 2)
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  status        AccountStatus @default(ACTIVE)
+  interestRate  Decimal       @db.Decimal(5, 2) @default(0.00)
+  ifsc          String        @default("NEXB0000001")
+  branchCode    String        @default("HQ001")
+  createdAt     DateTime      @default(now())
+  transfersFrom Transfer[]    @relation("SourceAccount")
+  transfersTo   Transfer[]    @relation("DestinationAccount")
+}
+
+model Beneficiary {
+  id            String   @id @default(uuid())
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  nickname      String
+  accountNumber String
+  bankName      String
+  ifsc          String
+  verified      Boolean  @default(false)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
+model Card {
+  id                 String     @id @default(uuid())
+  customerId          String
+  customer            Customer  @relation(fields: [customerId], references: [id])
+  type                CardType
+  cardNumber          String     @default("")
+  maskedNumber        String
+  expiryDate          String     @default("12/30")
+  cvv                 String     @default("123")
+  pinHash             String?
+  status              CardStatus @default(ACTIVE)
+  
+  // Associated Account (mainly for DEBIT)
+  accountId           String?
+  
+  // Usage Toggles
+  atmEnabled          Boolean    @default(true)
+  onlineEnabled       Boolean    @default(true)
+  contactlessEnabled  Boolean    @default(true)
+  internationalEnabled Boolean   @default(false)
+  
+  // Limits
+  dailyLimit          Decimal    @db.Decimal(18, 2)
+  atmLimit            Decimal    @db.Decimal(18, 2) @default(50000)
+  onlineLimit         Decimal    @db.Decimal(18, 2) @default(100000)
+  contactlessLimit    Decimal    @db.Decimal(18, 2) @default(5000)
+  internationalLimit  Decimal    @db.Decimal(18, 2) @default(50000)
+  
+  // Credit Card specific fields
+  creditLimit         Decimal?   @db.Decimal(18, 2)
+  balance             Decimal?   @db.Decimal(18, 2) @default(0) // Outstanding balance
+  availableCredit     Decimal?   @db.Decimal(18, 2)
+  rewardsPoints       Int        @default(0)
+  autoPayEnabled      Boolean    @default(false)
+  
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  
+  transactions        CardTransaction[]
+}
+
+model Transfer {
+  id                   String         @id @default(uuid())
+  reference            String         @unique
+  customerId            String
+  customer              Customer       @relation(fields: [customerId], references: [id])
+  sourceAccountId       String?
+  sourceAccount         Account?       @relation("SourceAccount", fields: [sourceAccountId], references: [id])
+  destinationAccountId  String?
+  destinationAccount    Account?       @relation("DestinationAccount", fields: [destinationAccountId], references: [id])
+  type                  TransferType
+  status                TransferStatus @default(DRAFT)
+  amount                Decimal        @db.Decimal(18, 2)
+  recipientDetails      String?
+  scheduledFor          DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@index([type, status])
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  actorId     String?
+  actor       Employee? @relation(fields: [actorId], references: [id])
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  action      String
+  entityType  String
+  entityId    String
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([entityType, entityId])
+  @@index([customerId])
+}
+
+model KycRequest {
+  id                   String      @id @default(uuid())
+  customerId           String      @unique
+  customer             Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  idType               String      // e.g. "PASSPORT", "AADHAAR", "PAN"
+  idNumber             String
+  idDocUrl             String?     // MinIO "kyc" bucket URL
+  photoUrl             String?     // MinIO "photos" bucket URL
+  signatureUrl         String?     // MinIO "signatures" bucket URL
+  
+  // Review stages
+  documentStatus       String      @default("PENDING") // PENDING, APPROVED, REJECTED
+  documentComment      String?
+  documentReviewedBy   String?     // Employee ID
+  
+  riskStatus           String      @default("PENDING") // PENDING, APPROVED, REJECTED
+  riskComment          String?
+  riskReviewedBy       String?     // Employee ID
+  
+  complianceStatus     String      @default("PENDING") // PENDING, APPROVED, REJECTED
+  complianceComment    String?
+  complianceReviewedBy String?     // Employee ID
+  
+  branchStatus         String      @default("PENDING") // PENDING, APPROVED, REJECTED
+  branchComment        String?
+  branchApprovedBy     String?     // Employee ID
+  
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+}
+
+model CardTransaction {
+  id              String   @id @default(uuid())
+  cardId          String
+  card            Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  amount          Decimal  @db.Decimal(18, 2)
+  description     String
+  isEmi           Boolean  @default(false)
+  emiMonths       Int?
+  emiInterestRate Decimal? @db.Decimal(5, 2)
+  createdAt       DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  category    String   // e.g. "LOGIN", "TRANSFER", "CARD", "FRAUD", "COMPLAINT", "TECHNICAL"
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([customerId])
+}
+
+model Ticket {
+  id           String         @id @default(uuid())
+  customerId   String
+  customer     Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  category     TicketCategory
+  status       TicketStatus   @default(OPEN)
+  assignedToId String?
+  assignedTo   Employee?      @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  comments     TicketComment[]
+
+  @@index([customerId])
+  @@index([assignedToId])
+}
+
+model TicketComment {
+  id         String   @id @default(uuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String   // Customer or Employee ID
+  authorName String
+  authorRole String   // "CUSTOMER" or "EMPLOYEE"
+  message    String
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId])
+}

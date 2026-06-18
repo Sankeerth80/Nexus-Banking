@@ -11,7 +11,13 @@ Push the source without `outputs/`, `work/`, `.env`, build output, or test repor
 Create a Vercel project from the GitHub repo and set the root directory to:
 
 ```text
-apps/web
+frontend/user-portal
+```
+
+or:
+
+```text
+frontend/admin-portal
 ```
 
 Use the variables from `outputs/deployment-envs/vercel.env.txt`.
@@ -24,7 +30,7 @@ Create a Render Blueprint from the GitHub repo:
 https://dashboard.render.com/blueprint/new?repo=https://github.com/Sankeerth80/Nexus-Banking
 ```
 
-Render reads `render.yaml` from the repository and deploys the NestJS API from `apps/api`.
+Render reads `render.yaml` from the repository and deploys the NestJS API from `backend`.
 
 Use the variables from `outputs/deployment-envs/render.env.txt` for secrets marked `sync: false`.
 

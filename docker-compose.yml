@@ -1,12 +1,12 @@
 services:
   api:
     build:
-      context: ./apps/api
+      context: ./backend
     environment:
       NODE_ENV: development
       APP_ENV: docker
       PORT: 4000
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: http://localhost:3000,http://localhost:3002
       DEMO_BANKING_MODE: "true"
       BANKING_RAILS_MODE: simulation
       DATABASE_URL: ${DATABASE_URL}
@@ -18,6 +18,11 @@ services:
       MINIO_USE_SSL: "false"
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_KYC: kyc
+      MINIO_BUCKET_STATEMENTS: statements
+      MINIO_BUCKET_PHOTOS: photos
+      MINIO_BUCKET_SIGNATURES: signatures
+      MINIO_BUCKET_REPORTS: reports
       BREVO_API_KEY: ${BREVO_API_KEY}
       BREVO_SMTP_USER: ${BREVO_SMTP_USER}
       BREVO_SMTP_PASSWORD: ${BREVO_SMTP_PASSWORD}
@@ -27,15 +32,27 @@ services:
     depends_on:
       - minio
 
-  web:
+  user-portal:
     build:
-      context: ./apps/web
+      context: ./frontend/user-portal
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:4000/api
       NEXT_PUBLIC_SOCKET_URL: http://localhost:4000
       NEXT_PUBLIC_DEMO_MODE: "true"
     ports:
       - "3000:3000"
+    depends_on:
+      - api
+
+  admin-portal:
+    build:
+      context: ./frontend/admin-portal
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000/api
+      NEXT_PUBLIC_SOCKET_URL: http://localhost:4000
+      NEXT_PUBLIC_DEMO_MODE: "true"
+    ports:
+      - "3002:3000"
     depends_on:
       - api
 
@@ -58,7 +75,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
       - api
 
@@ -69,7 +86,8 @@ services:
     ports:
       - "3001:3000"
     volumes:
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus

@@ -5,50 +5,84 @@ on:
   pull_request:
 
 jobs:
-  verify:
+  lint:
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run lint
 
-      - name: Install frontend dependencies
-        working-directory: apps/web
-        run: npm ci
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run typecheck
 
-      - name: Lint frontend
-        working-directory: apps/web
-        run: npm run lint
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run build
 
-      - name: Build frontend
-        working-directory: apps/web
-        run: npm run build
+  unit-tests:
+    name: unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run test:backend -- --runInBand
 
-      - name: Install Playwright Chromium
-        working-directory: apps/web
+  e2e-tests:
+    name: e2e tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright Chromium (User Portal)
+        working-directory: frontend/user-portal
         run: npx playwright install --with-deps chromium
+      - name: Install Playwright Chromium (Admin Portal)
+        working-directory: frontend/admin-portal
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
 
-      - name: Run frontend E2E
-        working-directory: apps/web
-        run: npm run e2e
-
-      - name: Install backend dependencies
-        working-directory: apps/api
-        run: npm ci
-
-      - name: Generate Prisma client
-        working-directory: apps/api
-        run: npm run prisma:generate
-
-      - name: Lint backend
-        working-directory: apps/api
-        run: npm run lint
-
-      - name: Test backend
-        working-directory: apps/api
-        run: npm test -- --runInBand
-
-      - name: Build backend
-        working-directory: apps/api
-        run: npm run build
+  security-audit:
+    name: security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high

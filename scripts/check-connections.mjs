@@ -15,9 +15,16 @@ const backendRequired = [
   'UPSTASH_REDIS_REST_URL',
   'UPSTASH_REDIS_REST_TOKEN',
   'MINIO_ENDPOINT',
+  'MINIO_PORT',
   'MINIO_ACCESS_KEY',
   'MINIO_SECRET_KEY',
+  'MINIO_BUCKET_KYC',
+  'MINIO_BUCKET_STATEMENTS',
+  'MINIO_BUCKET_PHOTOS',
+  'MINIO_BUCKET_SIGNATURES',
+  'MINIO_BUCKET_REPORTS',
   'BREVO_API_KEY',
+  'BREVO_FROM_EMAIL',
   'BREVO_SMTP_USER',
   'BREVO_SMTP_PASSWORD',
   'SENTRY_DSN',
@@ -146,6 +153,31 @@ async function checkHttp(name, url, options) {
   }
 }
 
+async function checkNeonDatabase(databaseUrl) {
+  if (!isConfigured(databaseUrl)) {
+    return { name: 'Neon PostgreSQL', status: 'warn', detail: 'not configured' };
+  }
+
+  try {
+    const { Pool } = await import('pg');
+    const pool = new Pool({ connectionString: databaseUrl, max: 1 });
+    const result = await pool.query('SELECT 1::int AS result');
+    await pool.end();
+
+    return {
+      name: 'Neon PostgreSQL',
+      status: result.rows[0]?.result === 1 ? 'pass' : 'warn',
+      detail: 'SELECT 1 query completed',
+    };
+  } catch (error) {
+    return {
+      name: 'Neon PostgreSQL',
+      status: 'warn',
+      detail: error instanceof Error ? error.message : 'database query failed',
+    };
+  }
+}
+
 async function main() {
   const env = readEnv();
   const checks = [checkSimulationMode(env)];
@@ -174,6 +206,13 @@ async function main() {
         `${env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, '')}/health`,
       ),
     );
+  }
+
+  if (
+    shouldCheckExternal &&
+    isConfigured(env.DATABASE_URL)
+  ) {
+    checks.push(await checkNeonDatabase(env.DATABASE_URL));
   }
 
   if (

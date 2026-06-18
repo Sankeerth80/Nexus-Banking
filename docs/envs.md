@@ -4,7 +4,7 @@ Do not commit real secrets. Add secret values in Vercel and Render dashboards, o
 
 ## Vercel Frontend
 
-Set the Vercel project root directory to `apps/web`.
+Set the Vercel project root directory to `frontend/user-portal` or `frontend/admin-portal`.
 
 Required variables:
 
@@ -16,7 +16,7 @@ Required variables:
 
 ## Render Backend
 
-Deploy the backend from `apps/api` using `render.yaml`.
+Deploy the backend from `backend` using `render.yaml`.
 
 Required runtime variables:
 
@@ -30,6 +30,11 @@ Required runtime variables:
 - `MINIO_ENDPOINT`
 - `MINIO_ACCESS_KEY`
 - `MINIO_SECRET_KEY`
+- `MINIO_BUCKET_KYC`
+- `MINIO_BUCKET_STATEMENTS`
+- `MINIO_BUCKET_PHOTOS`
+- `MINIO_BUCKET_SIGNATURES`
+- `MINIO_BUCKET_REPORTS`
 - `BREVO_API_KEY`
 - `BREVO_SMTP_USER`
 - `BREVO_SMTP_PASSWORD`
@@ -39,7 +44,7 @@ Keep `BANKING_RAILS_MODE=simulation` and `DEMO_BANKING_MODE=true` in every envir
 
 ## Local Files
 
-- Frontend: copy `apps/web/.env.example` to `apps/web/.env.local`
-- Backend: copy `apps/api/.env.example` to `apps/api/.env`
+- Frontend: copy `frontend/user-portal/.env.example` to `frontend/user-portal/.env.local` (and same for `frontend/admin-portal`)
+- Backend: copy `backend/.env.example` to `backend/.env`
 
 The pasted credential values from chat should be rotated before production use because they have already been exposed outside the secret manager.

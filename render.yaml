@@ -3,8 +3,9 @@ services:
     name: nexus-banking-api
     runtime: node
     plan: free
-    rootDir: apps/api
+    rootDir: backend
     buildCommand: npm ci && npm run prisma:generate && npm run build
+    preDeployCommand: npm run db:migrate:deploy
     startCommand: npm run start:prod
     healthCheckPath: /api/health
     autoDeploy: true
@@ -43,6 +44,16 @@ services:
         sync: false
       - key: MINIO_SECRET_KEY
         sync: false
+      - key: MINIO_BUCKET_KYC
+        value: kyc
+      - key: MINIO_BUCKET_STATEMENTS
+        value: statements
+      - key: MINIO_BUCKET_PHOTOS
+        value: photos
+      - key: MINIO_BUCKET_SIGNATURES
+        value: signatures
+      - key: MINIO_BUCKET_REPORTS
+        value: reports
       - key: BREVO_API_KEY
         sync: false
       - key: BREVO_SMTP_HOST
