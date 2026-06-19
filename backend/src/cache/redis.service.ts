@@ -81,6 +81,39 @@ export class RedisService {
     await this.getClient().del(`cache:${key}`);
   }
 
+  async getJsonCache<T>(key: string): Promise<T | null> {
+    try {
+      const value = await this.getCache(key);
+      if (!value) {
+        return null;
+      }
+
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  async setJsonCache<T>(
+    key: string,
+    value: T,
+    ttlSeconds: number,
+  ): Promise<void> {
+    try {
+      await this.setCache(key, JSON.stringify(value), ttlSeconds);
+    } catch {
+      // Cache writes are an optimization and must not block banking flows.
+    }
+  }
+
+  async deleteCacheSilently(key: string): Promise<void> {
+    try {
+      await this.deleteCache(key);
+    } catch {
+      // Cache invalidation is best-effort when Redis is unavailable.
+    }
+  }
+
   async deleteOtp(key: string): Promise<void> {
     await this.getClient().del(`otp:${key}`);
   }

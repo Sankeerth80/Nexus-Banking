@@ -96,10 +96,10 @@ export class AccountController {
   ) {
     // If customer, verify they own this account
     if (req.user.role === 'CUSTOMER') {
-      const myAccounts = await this.accountService.getAccountsForCustomer(
+      const ownsAccount = await this.accountService.customerOwnsAccount(
         req.user.userId,
+        id,
       );
-      const ownsAccount = myAccounts.some((acc) => acc.id === id);
       if (!ownsAccount) {
         throw new ForbiddenException(
           'Access denied: You do not own this account',

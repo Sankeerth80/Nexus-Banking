@@ -56,6 +56,11 @@ export class MetricsService {
     help: 'Fraud alerts recorded by the simulation risk layer.',
     registers: [this.registry],
   });
+  private readonly realtimeConnections = new Gauge({
+    name: 'nexus_banking_realtime_connections',
+    help: 'Currently connected Socket.IO clients.',
+    registers: [this.registry],
+  });
 
   readonly contentType = this.registry.contentType;
 
@@ -68,6 +73,7 @@ export class MetricsService {
     this.pendingApprovals.set(0);
     this.pendingKyc.set(0);
     this.fraudAlerts.set(0);
+    this.realtimeConnections.set(0);
   }
 
   renderMetrics(): Promise<string> {
@@ -111,5 +117,9 @@ export class MetricsService {
     if (statusCode >= 500) {
       this.apiErrors.inc(labels);
     }
+  }
+
+  setRealtimeConnections(count: number): void {
+    this.realtimeConnections.set(Math.max(0, count));
   }
 }

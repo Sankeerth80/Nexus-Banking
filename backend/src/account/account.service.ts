@@ -13,13 +13,51 @@ import {
   UpdateBeneficiaryDto,
 } from './dto/account.dto';
 import { AccountStatus, AccountType, Prisma } from '@prisma/client';
+import { RedisService } from '../cache/redis.service';
+
+const CUSTOMER_LIST_LIMIT = 100;
+const ADMIN_LIST_LIMIT = 200;
+const READ_CACHE_TTL_SECONDS = 15;
 
 @Injectable()
 export class AccountService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly redis: RedisService,
   ) {}
+
+  private async readCached<T>(
+    key: string,
+    producer: () => Promise<T>,
+  ): Promise<T> {
+    const cached = await this.redis.getJsonCache<T>(key);
+    if (cached) {
+      return cached;
+    }
+
+    const value = await producer();
+    await this.redis.setJsonCache(key, value, READ_CACHE_TTL_SECONDS);
+    return value;
+  }
+
+  private async invalidateAccountCaches(customerId?: string | null) {
+    await this.redis.deleteCacheSilently('accounts:admin:v1');
+
+    if (customerId) {
+      await this.redis.deleteCacheSilently(
+        `accounts:customer:${customerId}:v1`,
+      );
+    }
+  }
+
+  private async invalidateBeneficiaryCaches(customerId?: string | null) {
+    if (customerId) {
+      await this.redis.deleteCacheSilently(
+        `beneficiaries:customer:${customerId}:v1`,
+      );
+    }
+  }
 
   // ==========================================
   // ACCOUNTS LIFE CYCLE
@@ -67,31 +105,38 @@ export class AccountService {
       },
     });
 
+    await this.invalidateAccountCaches(dto.customerId);
     return account;
   }
 
   async getAccountsForCustomer(customerId: string) {
-    return this.prisma.account.findMany({
-      where: { customerId },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.readCached(`accounts:customer:${customerId}:v1`, () =>
+      this.prisma.account.findMany({
+        where: { customerId },
+        orderBy: { createdAt: 'desc' },
+        take: CUSTOMER_LIST_LIMIT,
+      }),
+    );
   }
 
   async getAllAccounts() {
-    return this.prisma.account.findMany({
-      include: {
-        customer: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            phone: true,
-            status: true,
+    return this.readCached('accounts:admin:v1', () =>
+      this.prisma.account.findMany({
+        include: {
+          customer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+              status: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        take: ADMIN_LIST_LIMIT,
+      }),
+    );
   }
 
   async updateAccount(id: string, dto: UpdateAccountDto) {
@@ -121,10 +166,13 @@ export class AccountService {
       updateData.branchCode = dto.branchCode;
     }
 
-    return this.prisma.account.update({
+    const updated = await this.prisma.account.update({
       where: { id },
       data: updateData,
     });
+
+    await this.invalidateAccountCaches(account.customerId);
+    return updated;
   }
 
   async deleteAccount(id: string) {
@@ -136,9 +184,12 @@ export class AccountService {
       throw new NotFoundException('Account not found');
     }
 
-    return this.prisma.account.delete({
+    const deleted = await this.prisma.account.delete({
       where: { id },
     });
+
+    await this.invalidateAccountCaches(account.customerId);
+    return deleted;
   }
 
   async toggleAccountStatus(id: string, status: 'ACTIVE' | 'DEACTIVATED') {
@@ -155,10 +206,22 @@ export class AccountService {
       throw new BadRequestException(`Invalid status value: ${status}`);
     }
 
-    return this.prisma.account.update({
+    const updated = await this.prisma.account.update({
       where: { id },
       data: { status: statusValue },
     });
+
+    await this.invalidateAccountCaches(account.customerId);
+    return updated;
+  }
+
+  async customerOwnsAccount(customerId: string, accountId: string) {
+    const account = await this.prisma.account.findFirst({
+      where: { id: accountId, customerId },
+      select: { id: true },
+    });
+
+    return Boolean(account);
   }
 
   // ==========================================
@@ -174,7 +237,7 @@ export class AccountService {
       throw new NotFoundException('Customer not found');
     }
 
-    return this.prisma.beneficiary.create({
+    const beneficiary = await this.prisma.beneficiary.create({
       data: {
         customerId,
         nickname: dto.nickname,
@@ -185,13 +248,19 @@ export class AccountService {
         verified: true, // Auto-verify in sandbox
       },
     });
+
+    await this.invalidateBeneficiaryCaches(customerId);
+    return beneficiary;
   }
 
   async getBeneficiariesForCustomer(customerId: string) {
-    return this.prisma.beneficiary.findMany({
-      where: { customerId },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.readCached(`beneficiaries:customer:${customerId}:v1`, () =>
+      this.prisma.beneficiary.findMany({
+        where: { customerId },
+        orderBy: { createdAt: 'desc' },
+        take: CUSTOMER_LIST_LIMIT,
+      }),
+    );
   }
 
   async updateBeneficiary(id: string, dto: UpdateBeneficiaryDto) {
@@ -203,7 +272,7 @@ export class AccountService {
       throw new NotFoundException('Beneficiary not found');
     }
 
-    return this.prisma.beneficiary.update({
+    const updated = await this.prisma.beneficiary.update({
       where: { id },
       data: {
         nickname:
@@ -217,6 +286,9 @@ export class AccountService {
         ifsc: dto.ifsc !== undefined ? dto.ifsc : beneficiary.ifsc,
       },
     });
+
+    await this.invalidateBeneficiaryCaches(beneficiary.customerId);
+    return updated;
   }
 
   async deleteBeneficiary(id: string) {
@@ -228,9 +300,12 @@ export class AccountService {
       throw new NotFoundException('Beneficiary not found');
     }
 
-    return this.prisma.beneficiary.delete({
+    const deleted = await this.prisma.beneficiary.delete({
       where: { id },
     });
+
+    await this.invalidateBeneficiaryCaches(beneficiary.customerId);
+    return deleted;
   }
 
   async toggleBeneficiaryStatus(id: string, active: boolean) {
@@ -242,10 +317,22 @@ export class AccountService {
       throw new NotFoundException('Beneficiary not found');
     }
 
-    return this.prisma.beneficiary.update({
+    const updated = await this.prisma.beneficiary.update({
       where: { id },
       data: { active },
     });
+
+    await this.invalidateBeneficiaryCaches(beneficiary.customerId);
+    return updated;
+  }
+
+  async customerOwnsBeneficiary(customerId: string, beneficiaryId: string) {
+    const beneficiary = await this.prisma.beneficiary.findFirst({
+      where: { id: beneficiaryId, customerId },
+      select: { id: true },
+    });
+
+    return Boolean(beneficiary);
   }
 
   // ==========================================
@@ -280,6 +367,15 @@ export class AccountService {
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
+      select: {
+        id: true,
+        reference: true,
+        type: true,
+        amount: true,
+        sourceAccountId: true,
+        destinationAccountId: true,
+        createdAt: true,
+      },
     });
 
     const dateStr = new Date().toISOString().split('T')[0];

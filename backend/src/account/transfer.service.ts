@@ -15,6 +15,12 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { InitiateTransferDto } from './dto/transfer.dto';
 import { TransferStatus, TransferType } from '@prisma/client';
 
+const CUSTOMER_TRANSFER_LIMIT = 50;
+const ADMIN_TRANSFER_LIMIT = 200;
+const AUDIT_LOG_LIMIT = 200;
+const SCHEDULED_BATCH_LIMIT = 25;
+const READ_CACHE_TTL_SECONDS = 10;
+
 @Injectable()
 export class TransferService implements OnModuleInit, OnModuleDestroy {
   private intervalId?: ReturnType<typeof setInterval>;
@@ -25,6 +31,33 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
     private readonly emailService: EmailService,
     private readonly realtimeGateway: RealtimeGateway,
   ) {}
+
+  private async readCached<T>(
+    key: string,
+    producer: () => Promise<T>,
+  ): Promise<T> {
+    const cached = await this.redisService.getJsonCache<T>(key);
+    if (cached) {
+      return cached;
+    }
+
+    const value = await producer();
+    await this.redisService.setJsonCache(key, value, READ_CACHE_TTL_SECONDS);
+    return value;
+  }
+
+  private async invalidateTransferReadCaches(customerId?: string | null) {
+    await Promise.all([
+      this.redisService.deleteCacheSilently('transfers:admin:v1'),
+      this.redisService.deleteCacheSilently('transfers:pending-risk:v1'),
+      this.redisService.deleteCacheSilently('audit:admin:v1'),
+      customerId
+        ? this.redisService.deleteCacheSilently(
+            `transfers:customer:${customerId}:v1`,
+          )
+        : Promise.resolve(),
+    ]);
+  }
 
   onModuleInit() {
     this.intervalId = setInterval(() => {
@@ -159,6 +192,8 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
       data: { status: TransferStatus.OTP_PENDING },
     });
 
+    await this.invalidateTransferReadCaches(customerId);
+
     return {
       transferId: transfer.id,
       reference,
@@ -257,6 +292,8 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
+      await this.invalidateTransferReadCaches(customerId);
+
       return {
         status: 'SCHEDULED',
         transfer: updatedTransfer,
@@ -273,7 +310,7 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
 
   private async executeTransfer(transferId: string) {
     // Start transactional execution
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const transfer = await tx.transfer.findUnique({
         where: { id: transferId },
         include: {
@@ -427,6 +464,9 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
         transfer: completed,
       };
     });
+
+    await this.invalidateTransferReadCaches(result.transfer.customerId);
+    return result;
   }
 
   // ==========================================
@@ -441,6 +481,8 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
           lte: new Date(),
         },
       },
+      orderBy: { scheduledFor: 'asc' },
+      take: SCHEDULED_BATCH_LIMIT,
     });
 
     for (const t of pending) {
@@ -460,49 +502,58 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
   // ==========================================
 
   async getTransferHistory(customerId: string) {
-    return this.prisma.transfer.findMany({
-      where: { customerId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        sourceAccount: {
-          select: { accountNumber: true, type: true },
+    return this.readCached(`transfers:customer:${customerId}:v1`, () =>
+      this.prisma.transfer.findMany({
+        where: { customerId },
+        orderBy: { createdAt: 'desc' },
+        take: CUSTOMER_TRANSFER_LIMIT,
+        include: {
+          sourceAccount: {
+            select: { accountNumber: true, type: true },
+          },
+          destinationAccount: {
+            select: { accountNumber: true, type: true },
+          },
         },
-        destinationAccount: {
-          select: { accountNumber: true, type: true },
-        },
-      },
-    });
+      }),
+    );
   }
 
   async getAllTransfers() {
-    return this.prisma.transfer.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        customer: {
-          select: { fullName: true, email: true },
+    return this.readCached('transfers:admin:v1', () =>
+      this.prisma.transfer.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: ADMIN_TRANSFER_LIMIT,
+        include: {
+          customer: {
+            select: { fullName: true, email: true },
+          },
+          sourceAccount: {
+            select: { accountNumber: true },
+          },
+          destinationAccount: {
+            select: { accountNumber: true },
+          },
         },
-        sourceAccount: {
-          select: { accountNumber: true },
-        },
-        destinationAccount: {
-          select: { accountNumber: true },
-        },
-      },
-    });
+      }),
+    );
   }
 
   async getAuditLogs() {
-    return this.prisma.auditLog.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        actor: {
-          select: { fullName: true, email: true, role: true },
+    return this.readCached('audit:admin:v1', () =>
+      this.prisma.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: AUDIT_LOG_LIMIT,
+        include: {
+          actor: {
+            select: { fullName: true, email: true, role: true },
+          },
+          customer: {
+            select: { fullName: true, email: true },
+          },
         },
-        customer: {
-          select: { fullName: true, email: true },
-        },
-      },
-    });
+      }),
+    );
   }
 
   async cancelScheduledTransfer(customerId: string, id: string) {
@@ -524,10 +575,13 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    return this.prisma.transfer.update({
+    const updated = await this.prisma.transfer.update({
       where: { id },
       data: { status: TransferStatus.CANCELLED },
     });
+
+    await this.invalidateTransferReadCaches(customerId);
+    return updated;
   }
 
   // ==========================================
@@ -535,21 +589,24 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
   // ==========================================
 
   async getPendingRiskReviews() {
-    return this.prisma.transfer.findMany({
-      where: { status: TransferStatus.RISK_REVIEW },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        customer: {
-          select: { fullName: true, email: true },
+    return this.readCached('transfers:pending-risk:v1', () =>
+      this.prisma.transfer.findMany({
+        where: { status: TransferStatus.RISK_REVIEW },
+        orderBy: { createdAt: 'desc' },
+        take: ADMIN_TRANSFER_LIMIT,
+        include: {
+          customer: {
+            select: { fullName: true, email: true },
+          },
+          sourceAccount: {
+            select: { accountNumber: true },
+          },
+          destinationAccount: {
+            select: { accountNumber: true },
+          },
         },
-        sourceAccount: {
-          select: { accountNumber: true },
-        },
-        destinationAccount: {
-          select: { accountNumber: true },
-        },
-      },
-    });
+      }),
+    );
   }
 
   async reviewTransfer(
@@ -598,10 +655,11 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
+      await this.invalidateTransferReadCaches(transfer.customerId);
       return { status: 'FAILED', transfer: updated };
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const sourceAccount = await tx.account.findUnique({
         where: { id: transfer.sourceAccountId || '' },
       });
@@ -681,5 +739,8 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
         transfer: completed,
       };
     });
+
+    await this.invalidateTransferReadCaches(transfer.customerId);
+    return result;
   }
 }

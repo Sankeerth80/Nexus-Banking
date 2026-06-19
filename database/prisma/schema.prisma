@@ -170,6 +170,9 @@ model Account {
   createdAt     DateTime      @default(now())
   transfersFrom Transfer[]    @relation("SourceAccount")
   transfersTo   Transfer[]    @relation("DestinationAccount")
+
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
 }
 
 model Beneficiary {
@@ -183,6 +186,8 @@ model Beneficiary {
   verified      Boolean  @default(false)
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
+
+  @@index([customerId, active, createdAt])
 }
 
 model Card {
@@ -224,6 +229,10 @@ model Card {
   updatedAt           DateTime   @updatedAt
   
   transactions        CardTransaction[]
+
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
+  @@index([type, status])
 }
 
 model Transfer {
@@ -244,6 +253,8 @@ model Transfer {
   updatedAt             DateTime       @updatedAt
 
   @@index([type, status])
+  @@index([customerId, createdAt])
+  @@index([status, scheduledFor])
 }
 
 model AuditLog {
@@ -261,6 +272,7 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([customerId])
+  @@index([createdAt])
 }
 
 model KycRequest {
@@ -292,6 +304,9 @@ model KycRequest {
   
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
+
+  @@index([documentStatus, complianceStatus, riskStatus, branchStatus])
+  @@index([updatedAt])
 }
 
 model CardTransaction {
@@ -304,6 +319,8 @@ model CardTransaction {
   emiMonths       Int?
   emiInterestRate Decimal? @db.Decimal(5, 2)
   createdAt       DateTime @default(now())
+
+  @@index([cardId, createdAt])
 }
 
 model Notification {
@@ -317,6 +334,7 @@ model Notification {
   createdAt   DateTime @default(now())
 
   @@index([customerId])
+  @@index([customerId, read, createdAt])
 }
 
 model Ticket {
@@ -334,7 +352,9 @@ model Ticket {
   comments     TicketComment[]
 
   @@index([customerId])
+  @@index([customerId, updatedAt])
   @@index([assignedToId])
+  @@index([status, updatedAt])
 }
 
 model TicketComment {

@@ -51,10 +51,10 @@ export class BeneficiaryController {
     @Param('id') id: string,
     @Body() dto: UpdateBeneficiaryDto,
   ) {
-    // Verify ownership
-    const myBeneficiaries =
-      await this.accountService.getBeneficiariesForCustomer(req.user.userId);
-    const ownsBeneficiary = myBeneficiaries.some((b) => b.id === id);
+    const ownsBeneficiary = await this.accountService.customerOwnsBeneficiary(
+      req.user.userId,
+      id,
+    );
     if (!ownsBeneficiary) {
       throw new ForbiddenException(
         'Access denied: You do not own this beneficiary',
@@ -70,10 +70,10 @@ export class BeneficiaryController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    // Verify ownership
-    const myBeneficiaries =
-      await this.accountService.getBeneficiariesForCustomer(req.user.userId);
-    const ownsBeneficiary = myBeneficiaries.some((b) => b.id === id);
+    const ownsBeneficiary = await this.accountService.customerOwnsBeneficiary(
+      req.user.userId,
+      id,
+    );
     if (!ownsBeneficiary) {
       throw new ForbiddenException(
         'Access denied: You do not own this beneficiary',
@@ -90,10 +90,10 @@ export class BeneficiaryController {
     @Param('id') id: string,
     @Body('active') active: boolean,
   ) {
-    // Verify ownership
-    const myBeneficiaries =
-      await this.accountService.getBeneficiariesForCustomer(req.user.userId);
-    const ownsBeneficiary = myBeneficiaries.some((b) => b.id === id);
+    const ownsBeneficiary = await this.accountService.customerOwnsBeneficiary(
+      req.user.userId,
+      id,
+    );
     if (!ownsBeneficiary) {
       throw new ForbiddenException(
         'Access denied: You do not own this beneficiary',

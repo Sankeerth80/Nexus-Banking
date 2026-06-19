@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from 'minio';
 import type { EnvironmentVariables } from '../config/environment';
@@ -6,6 +6,15 @@ import {
   type InfrastructureCheck,
   measureDuration,
 } from '../infrastructure/infrastructure.types';
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/plain',
+]);
 
 @Injectable()
 export class StorageService {
@@ -85,6 +94,14 @@ export class StorageService {
     buffer: Buffer,
     contentType: string,
   ): Promise<string> {
+    if (buffer.length > MAX_UPLOAD_BYTES) {
+      throw new BadRequestException('File size exceeds the 10 MB limit.');
+    }
+
+    if (!ALLOWED_UPLOAD_CONTENT_TYPES.has(contentType)) {
+      throw new BadRequestException('File type is not supported.');
+    }
+
     const client = this.getClient();
     await client.putObject(bucketName, objectName, buffer, buffer.length, {
       'content-type': contentType,

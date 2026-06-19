@@ -20,7 +20,13 @@ export class PrismaService
     const databaseUrl = configService.get('DATABASE_URL', { infer: true });
     const pool =
       databaseUrl && databaseUrl.length > 0
-        ? new Pool({ connectionString: databaseUrl, max: 5 })
+        ? new Pool({
+            allowExitOnIdle: true,
+            connectionString: databaseUrl,
+            connectionTimeoutMillis: 5000,
+            idleTimeoutMillis: 30000,
+            max: 5,
+          })
         : undefined;
     const adapter = pool ? new PrismaPg(pool) : undefined;
 

@@ -1,11 +1,14 @@
 import {
   ConnectedSocket,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
   MessageBody,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import { MetricsService } from '../observability/metrics.service';
 
 type BankingRealtimeEvent =
   | 'login'
@@ -25,10 +28,30 @@ type RealtimePayload = {
   cors: {
     origin: '*',
   },
+  maxHttpBufferSize: 64 * 1024,
+  pingInterval: 25000,
+  pingTimeout: 10000,
+  transports: ['websocket', 'polling'],
 })
-export class RealtimeGateway {
+export class RealtimeGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server!: Server;
+
+  private activeConnections = 0;
+
+  constructor(private readonly metricsService: MetricsService) {}
+
+  handleConnection() {
+    this.activeConnections += 1;
+    this.metricsService.setRealtimeConnections(this.activeConnections);
+  }
+
+  handleDisconnect() {
+    this.activeConnections = Math.max(0, this.activeConnections - 1);
+    this.metricsService.setRealtimeConnections(this.activeConnections);
+  }
 
   @SubscribeMessage('login')
   handleLogin(

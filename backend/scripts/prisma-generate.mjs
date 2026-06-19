@@ -1,20 +1,24 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 process.env.DATABASE_URL ??=
   'postgresql://localhost:5432/nexus_banking?schema=public';
 process.env.DIRECT_URL ??= process.env.DATABASE_URL;
 
-const executable = join(
-  process.cwd(),
-  'node_modules',
-  '.bin',
-  process.platform === 'win32' ? 'prisma.cmd' : 'prisma',
+const binaryName = process.platform === 'win32' ? 'prisma.cmd' : 'prisma';
+const candidateExecutables = [
+  join(process.cwd(), 'node_modules', '.bin', binaryName),
+  join(resolve(process.cwd(), '..'), 'node_modules', '.bin', binaryName),
+];
+const executable = candidateExecutables.find((candidate) =>
+  existsSync(candidate),
 );
 
-if (!existsSync(executable)) {
-  console.error(`Prisma CLI binary was not found at ${executable}`);
+if (!executable) {
+  console.error(
+    `Prisma CLI binary was not found at: ${candidateExecutables.join(', ')}`,
+  );
   process.exit(1);
 }
 

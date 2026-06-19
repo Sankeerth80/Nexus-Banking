@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { randomInt } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { CardStatus, CardType } from '@prisma/client';
 import {
@@ -14,6 +15,9 @@ import {
   PayBillDto,
 } from './dto/card.dto';
 
+const CARD_TRANSACTION_LIMIT = 25;
+const ADMIN_CARD_LIMIT = 200;
+
 @Injectable()
 export class CardService {
   constructor(private readonly prisma: PrismaService) {}
@@ -22,13 +26,13 @@ export class CardService {
   private generateCardNumber(prefix: string): string {
     let num = prefix;
     while (num.length < 16) {
-      num += Math.floor(Math.random() * 10).toString();
+      num += randomInt(0, 10).toString();
     }
     return num.replace(/(\d{4})/g, '$1 ').trim();
   }
 
   private generateCvv(): string {
-    return Math.floor(100 + Math.random() * 900).toString();
+    return randomInt(100, 1000).toString();
   }
 
   private generateExpiryDate(): string {
@@ -55,8 +59,10 @@ export class CardService {
       include: {
         transactions: {
           orderBy: { createdAt: 'desc' },
+          take: CARD_TRANSACTION_LIMIT,
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -236,7 +242,12 @@ export class CardService {
 
     return this.prisma.card.findUnique({
       where: { id: cardId },
-      include: { transactions: true },
+      include: {
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+          take: CARD_TRANSACTION_LIMIT,
+        },
+      },
     });
   }
 
@@ -611,6 +622,7 @@ export class CardService {
   async getAllCardsAdmin() {
     return this.prisma.card.findMany({
       orderBy: { createdAt: 'desc' },
+      take: ADMIN_CARD_LIMIT,
       include: {
         customer: {
           select: { fullName: true, email: true },

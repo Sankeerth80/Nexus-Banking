@@ -69,7 +69,7 @@ import {
 } from "@/components/ui/select";
 import { publicEnv } from "@/lib/env";
 import { getErrorMessage } from "@/lib/errors";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 
 type dbTransfer = {
   id: string;
@@ -221,13 +221,13 @@ export default function Home() {
   // Sync workspace details
   const loadTransferWorkspace = React.useCallback(async () => {
     try {
-      const accs = (await apiFetch("/accounts")) as CustomerAccount[];
+      const [accs, bens, hist] = await Promise.all([
+        apiFetch("/accounts") as Promise<CustomerAccount[]>,
+        apiFetch("/beneficiaries") as Promise<CustomerBeneficiary[]>,
+        apiFetch("/transfers/history") as Promise<dbTransfer[]>,
+      ]);
       setCustomerAccounts(accs);
-
-      const bens = (await apiFetch("/beneficiaries")) as CustomerBeneficiary[];
       setCustomerBeneficiaries(bens.filter((b) => b.active));
-
-      const hist = (await apiFetch("/transfers/history")) as dbTransfer[];
       setDbTransfers(hist);
     } catch (err) {
       console.error("Failed to load workspace data:", err);
@@ -242,34 +242,54 @@ export default function Home() {
 
   // Connect Socket.io
   React.useEffect(() => {
-    if (user && user.status === "APPROVED") {
-      const socketUrl =
-        publicEnv.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
+    if (!user || user.status !== "APPROVED") {
+      return;
+    }
+
+    let socketInstance: Socket | null = null;
+    let active = true;
+
+    const connectRealtime = async () => {
+      const { io } = await import("socket.io-client");
+
+      if (!active) {
+        return;
+      }
+
+      const socketUrl = publicEnv.NEXT_PUBLIC_SOCKET_URL;
       const s = io(socketUrl, {
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 8000,
         transports: ["websocket"],
       });
+      socketInstance = s;
       setSocket(s);
 
       s.on("connect", () => {
         setNotifications((prev) => [
           "Connected to Realtime Notification service.",
           ...prev,
-        ]);
+        ].slice(0, 10));
       });
 
       s.on("money-transfer", (data: MoneyTransferRealtimeEvent) => {
         setNotifications((prev) => [
           `[Transfer Event] Ref: ${data.reference} | Amount: ${data.amount} | Status: ${data.status}`,
           ...prev,
-        ]);
+        ].slice(0, 10));
         loadTransferWorkspace();
         refreshUser();
       });
+    };
 
-      return () => {
-        s.disconnect();
-      };
-    }
+    void connectRealtime();
+
+    return () => {
+      active = false;
+      socketInstance?.disconnect();
+      setSocket(null);
+    };
   }, [user, loadTransferWorkspace, refreshUser]);
 
   const handleEmailVerify = async (e: React.FormEvent) => {

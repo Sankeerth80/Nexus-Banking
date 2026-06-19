@@ -77,8 +77,10 @@ describe('CardService', () => {
         include: {
           transactions: {
             orderBy: { createdAt: 'desc' },
+            take: 25,
           },
         },
+        orderBy: { createdAt: 'desc' },
       });
     });
   });

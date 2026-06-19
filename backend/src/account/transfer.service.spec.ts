@@ -64,6 +64,9 @@ describe('TransferService', () => {
     setOtp: jest.fn(),
     getOtp: jest.fn(),
     deleteOtp: jest.fn(),
+    getJsonCache: jest.fn().mockResolvedValue(null),
+    setJsonCache: jest.fn(),
+    deleteCacheSilently: jest.fn(),
   };
 
   const mockEmail = {
@@ -671,6 +674,8 @@ describe('TransferService', () => {
             lte: expect.any(Date),
           },
         },
+        orderBy: { scheduledFor: 'asc' },
+        take: 25,
       });
       // Verification of executions
       expect(mockPrisma.account.update).toHaveBeenCalled();
@@ -685,6 +690,7 @@ describe('TransferService', () => {
       expect(mockPrisma.transfer.findMany).toHaveBeenCalledWith({
         where: { customerId: 'cust-1' },
         orderBy: { createdAt: 'desc' },
+        take: 50,
         include: expect.any(Object),
       });
     });
@@ -695,6 +701,7 @@ describe('TransferService', () => {
       expect(res).toEqual([{ id: '1' }]);
       expect(mockPrisma.transfer.findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'desc' },
+        take: 200,
         include: expect.any(Object),
       });
     });
@@ -705,6 +712,7 @@ describe('TransferService', () => {
       expect(res).toEqual([{ id: '1' }]);
       expect(mockPrisma.auditLog.findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'desc' },
+        take: 200,
         include: expect.any(Object),
       });
     });
@@ -891,6 +899,7 @@ describe('TransferService', () => {
       expect(mockPrisma.transfer.findMany).toHaveBeenCalledWith({
         where: { status: TransferStatus.RISK_REVIEW },
         orderBy: { createdAt: 'desc' },
+        take: 200,
         include: expect.any(Object),
       });
     });

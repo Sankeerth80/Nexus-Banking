@@ -10,6 +10,10 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { TicketCategory, TicketStatus } from '@prisma/client';
 import { CreateTicketDto } from './dto/notification.dto';
 
+const NOTIFICATION_LIMIT = 100;
+const TICKET_LIMIT = 100;
+const TICKET_COMMENT_LIMIT = 100;
+
 @Injectable()
 export class NotificationService {
   constructor(
@@ -75,6 +79,7 @@ export class NotificationService {
     return this.prisma.notification.findMany({
       where: { customerId },
       orderBy: { createdAt: 'desc' },
+      take: NOTIFICATION_LIMIT,
     });
   }
 
@@ -147,12 +152,14 @@ export class NotificationService {
       include: {
         comments: {
           orderBy: { createdAt: 'asc' },
+          take: TICKET_COMMENT_LIMIT,
         },
         assignedTo: {
           select: { fullName: true, email: true, role: true },
         },
       },
       orderBy: { updatedAt: 'desc' },
+      take: TICKET_LIMIT,
     });
   }
 
@@ -162,6 +169,7 @@ export class NotificationService {
       include: {
         comments: {
           orderBy: { createdAt: 'asc' },
+          take: TICKET_COMMENT_LIMIT,
         },
         assignedTo: {
           select: { fullName: true, email: true, role: true },
@@ -250,12 +258,14 @@ export class NotificationService {
         },
         comments: {
           orderBy: { createdAt: 'asc' },
+          take: TICKET_COMMENT_LIMIT,
         },
         assignedTo: {
           select: { id: true, fullName: true, role: true },
         },
       },
       orderBy: { createdAt: 'desc' },
+      take: TICKET_LIMIT,
     });
   }
 

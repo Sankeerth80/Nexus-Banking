@@ -50,6 +50,9 @@ type ReviewKycResponse = {
   accountCreated?: Account;
 };
 
+const CUSTOMER_ACCOUNT_LIMIT = 100;
+const PENDING_KYC_LIMIT = 100;
+
 @Injectable()
 export class KycService {
   constructor(
@@ -159,7 +162,13 @@ export class KycService {
   async getKycStatus(customerId: string): Promise<KycStatusResponse> {
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
-      include: { kycRequest: true, accounts: true },
+      include: {
+        kycRequest: true,
+        accounts: {
+          orderBy: { createdAt: 'desc' },
+          take: CUSTOMER_ACCOUNT_LIMIT,
+        },
+      },
     });
 
     if (!customer) {
@@ -182,6 +191,8 @@ export class KycService {
           status: 'PENDING',
         },
       },
+      orderBy: { updatedAt: 'desc' },
+      take: PENDING_KYC_LIMIT,
       include: {
         customer: {
           select: {
@@ -226,15 +237,11 @@ export class KycService {
     }
 
     // Resolve keys to presigned URLs
-    const idDocUrl = request.idDocUrl
-      ? await this.getResolvedUrl(request.idDocUrl)
-      : null;
-    const photoUrl = request.photoUrl
-      ? await this.getResolvedUrl(request.photoUrl)
-      : null;
-    const signatureUrl = request.signatureUrl
-      ? await this.getResolvedUrl(request.signatureUrl)
-      : null;
+    const [idDocUrl, photoUrl, signatureUrl] = await Promise.all([
+      request.idDocUrl ? this.getResolvedUrl(request.idDocUrl) : null,
+      request.photoUrl ? this.getResolvedUrl(request.photoUrl) : null,
+      request.signatureUrl ? this.getResolvedUrl(request.signatureUrl) : null,
+    ]);
 
     return {
       ...request,
