@@ -3,10 +3,24 @@ import { RiskService } from './risk.service';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../cache/redis.service';
 
+type RedisClientMock = {
+  incr: jest.Mock;
+  expire: jest.Mock;
+  get: jest.Mock;
+  del: jest.Mock;
+};
+
+type PrismaMock = {
+  auditLog: {
+    count: jest.Mock;
+    findFirst: jest.Mock;
+  };
+};
+
 describe('RiskService', () => {
   let service: RiskService;
-  let redisClientMock: any;
-  let prismaMock: any;
+  let redisClientMock: RedisClientMock;
+  let prismaMock: PrismaMock;
 
   beforeEach(async () => {
     redisClientMock = {

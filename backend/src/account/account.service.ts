@@ -12,7 +12,7 @@ import {
   UpdateAccountDto,
   UpdateBeneficiaryDto,
 } from './dto/account.dto';
-import { AccountStatus, AccountType } from '@prisma/client';
+import { AccountStatus, AccountType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class AccountService {
@@ -103,7 +103,7 @@ export class AccountService {
       throw new NotFoundException('Account not found');
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.AccountUpdateInput = {};
     if (dto.type) {
       const typeValue = dto.type.toUpperCase() as AccountType;
       if (!Object.values(AccountType).includes(typeValue)) {

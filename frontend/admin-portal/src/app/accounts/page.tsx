@@ -38,14 +38,34 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { publicEnv } from "@/lib/env";
+import { getErrorMessage } from "@/lib/errors";
 
 type Account = {
   id: string;
@@ -81,13 +101,15 @@ export default function AdminAccountsPage() {
   const [interestRate, setInterestRate] = React.useState("");
   const [ifsc, setIfsc] = React.useState("NEXB0000001");
   const [branchCode, setBranchCode] = React.useState("HQ001");
-  
+
   const [success, setSuccess] = React.useState("");
   const [error, setError] = React.useState("");
   const [actionLoading, setActionLoading] = React.useState(false);
 
   // Edit account states
-  const [editingAccountId, setEditingAccountId] = React.useState<string | null>(null);
+  const [editingAccountId, setEditingAccountId] = React.useState<string | null>(
+    null,
+  );
   const [editType, setEditType] = React.useState("");
   const [editInterestRate, setEditInterestRate] = React.useState("");
   const [editIfsc, setEditIfsc] = React.useState("");
@@ -101,26 +123,33 @@ export default function AdminAccountsPage() {
   }, [user, loading, router]);
 
   // apiFetch wrapper
-  const apiFetch = React.useCallback(async (path: string, options: RequestInit = {}) => {
-    const baseUrl = publicEnv.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
-    const url = path.startsWith("http") ? path : `${baseUrl}/${path.replace(/^\//, "")}`;
-    
-    const response = await fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
+  const apiFetch = React.useCallback(
+    async (path: string, options: RequestInit = {}) => {
+      const baseUrl = publicEnv.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+      const url = path.startsWith("http")
+        ? path
+        : `${baseUrl}/${path.replace(/^\//, "")}`;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
-    }
+      const response = await fetch(url, {
+        ...options,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      });
 
-    return response.json();
-  }, []);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Request failed with status ${response.status}`,
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
 
   const fetchAccounts = React.useCallback(async () => {
     setAccountsLoading(true);
@@ -128,8 +157,10 @@ export default function AdminAccountsPage() {
     try {
       const data = await apiFetch("/accounts/admin");
       setAccounts(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load bank accounts registry.");
+    } catch (error: unknown) {
+      setError(
+        getErrorMessage(error, "Failed to load bank accounts registry."),
+      );
     } finally {
       setAccountsLoading(false);
     }
@@ -165,8 +196,8 @@ export default function AdminAccountsPage() {
       setBalance("");
       setInterestRate("");
       fetchAccounts();
-    } catch (err: any) {
-      setError(err.message || "Failed to create account.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to create account."));
     } finally {
       setActionLoading(false);
     }
@@ -180,18 +211,23 @@ export default function AdminAccountsPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       fetchAccounts();
-    } catch (err: any) {
-      setError(err.message || "Failed to toggle account status.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to toggle account status."));
     }
   };
 
   const handleDeleteAccount = async (id: string) => {
-    if (!confirm("Are you sure you want to permanently delete this account? This cannot be undone.")) return;
+    if (
+      !confirm(
+        "Are you sure you want to permanently delete this account? This cannot be undone.",
+      )
+    )
+      return;
     try {
       await apiFetch(`/accounts/${id}`, { method: "DELETE" });
       fetchAccounts();
-    } catch (err: any) {
-      setError(err.message || "Failed to delete account.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to delete account."));
     }
   };
 
@@ -216,8 +252,8 @@ export default function AdminAccountsPage() {
       });
       setEditingAccountId(null);
       fetchAccounts();
-    } catch (err: any) {
-      setError(err.message || "Failed to save edits.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to save edits."));
     }
   };
 
@@ -236,29 +272,50 @@ export default function AdminAccountsPage() {
             </h1>
             <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
               <span>Welcome, {user.fullName}</span>
-              <Badge variant="secondary" className="text-[9px] py-0 px-1 font-semibold uppercase tracking-wider">
+              <Badge
+                variant="secondary"
+                className="text-[9px] py-0 px-1 font-semibold uppercase tracking-wider"
+              >
                 {user.role}
               </Badge>
             </div>
           </div>
 
           <nav className="flex items-center gap-4 ml-6">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
               KYC Onboarding
             </Link>
-            <Link href="/accounts" className="text-sm font-semibold text-primary transition-colors">
+            <Link
+              href="/accounts"
+              className="text-sm font-semibold text-primary transition-colors"
+            >
               Account Controls
             </Link>
-            <Link href="/cards" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/cards"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
               Card Registry
             </Link>
-            <Link href="/audit" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/audit"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
               Auditing & Logs
             </Link>
           </nav>
 
           <ThemeToggle />
-          <Button onClick={logout} variant="ghost" size="icon" className="ml-auto" aria-label="Log out">
+          <Button
+            onClick={logout}
+            variant="ghost"
+            size="icon"
+            className="ml-auto"
+            aria-label="Log out"
+          >
             <LogOut className="size-5" />
           </Button>
         </div>
@@ -276,7 +333,11 @@ export default function AdminAccountsPage() {
             </h2>
           </div>
           <div className="flex gap-2">
-            <Button onClick={fetchAccounts} variant="outline" className="gap-1.5 text-xs">
+            <Button
+              onClick={fetchAccounts}
+              variant="outline"
+              className="gap-1.5 text-xs"
+            >
               <RefreshCw className="size-3.5" /> Refresh Registry
             </Button>
           </div>
@@ -302,7 +363,10 @@ export default function AdminAccountsPage() {
         <Card className="border-border/60 bg-card/65 backdrop-blur-md">
           <CardHeader>
             <CardTitle>Provisioned Bank Accounts</CardTitle>
-            <CardDescription>A comprehensive listing of all active customer products and balances.</CardDescription>
+            <CardDescription>
+              A comprehensive listing of all active customer products and
+              balances.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {accountsLoading ? (
@@ -333,14 +397,23 @@ export default function AdminAccountsPage() {
                       <TableRow key={acc.id}>
                         <TableCell>
                           <div>
-                            <p className="font-semibold text-sm">{acc.customer?.fullName}</p>
-                            <p className="text-xs text-muted-foreground">{acc.customer?.email}</p>
+                            <p className="font-semibold text-sm">
+                              {acc.customer?.fullName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {acc.customer?.email}
+                            </p>
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-sm">{acc.accountNumber}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {acc.accountNumber}
+                        </TableCell>
                         <TableCell>
                           {editingAccountId === acc.id ? (
-                            <Select onValueChange={setEditType} value={editType}>
+                            <Select
+                              onValueChange={setEditType}
+                              value={editType}
+                            >
                               <SelectTrigger className="h-8 text-xs w-36">
                                 <SelectValue />
                               </SelectTrigger>
@@ -348,14 +421,21 @@ export default function AdminAccountsPage() {
                                 <SelectItem value="SAVINGS">SAVINGS</SelectItem>
                                 <SelectItem value="CURRENT">CURRENT</SelectItem>
                                 <SelectItem value="SALARY">SALARY</SelectItem>
-                                <SelectItem value="FIXED_DEPOSIT">FIXED DEPOSIT</SelectItem>
-                                <SelectItem value="RECURRING_DEPOSIT">RECURRING DEPOSIT</SelectItem>
+                                <SelectItem value="FIXED_DEPOSIT">
+                                  FIXED DEPOSIT
+                                </SelectItem>
+                                <SelectItem value="RECURRING_DEPOSIT">
+                                  RECURRING DEPOSIT
+                                </SelectItem>
                                 <SelectItem value="NRE">NRE</SelectItem>
                                 <SelectItem value="NRO">NRO</SelectItem>
                               </SelectContent>
                             </Select>
                           ) : (
-                            <Badge variant="outline" className="font-semibold uppercase tracking-wider text-[10px]">
+                            <Badge
+                              variant="outline"
+                              className="font-semibold uppercase tracking-wider text-[10px]"
+                            >
                               {acc.type}
                             </Badge>
                           )}
@@ -365,10 +445,12 @@ export default function AdminAccountsPage() {
                         </TableCell>
                         <TableCell>
                           {editingAccountId === acc.id ? (
-                            <Input 
+                            <Input
                               type="number"
                               value={editInterestRate}
-                              onChange={(e) => setEditInterestRate(e.target.value)}
+                              onChange={(e) =>
+                                setEditInterestRate(e.target.value)
+                              }
                               className="h-8 text-xs w-20"
                             />
                           ) : (
@@ -378,28 +460,38 @@ export default function AdminAccountsPage() {
                         <TableCell>
                           {editingAccountId === acc.id ? (
                             <div className="space-y-1">
-                              <Input 
+                              <Input
                                 value={editIfsc}
                                 onChange={(e) => setEditIfsc(e.target.value)}
                                 className="h-8 text-xs w-32"
                               />
-                              <Input 
+                              <Input
                                 value={editBranchCode}
-                                onChange={(e) => setEditBranchCode(e.target.value)}
+                                onChange={(e) =>
+                                  setEditBranchCode(e.target.value)
+                                }
                                 className="h-8 text-xs w-32"
                               />
                             </div>
                           ) : (
                             <div>
                               <p className="text-xs font-mono">{acc.ifsc}</p>
-                              <p className="text-[10px] text-muted-foreground font-mono">Branch: {acc.branchCode}</p>
+                              <p className="text-[10px] text-muted-foreground font-mono">
+                                Branch: {acc.branchCode}
+                              </p>
                             </div>
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge 
-                            onClick={() => handleToggleStatus(acc.id, acc.status)}
-                            variant={acc.status === "ACTIVE" ? "outline" : "destructive"} 
+                          <Badge
+                            onClick={() =>
+                              handleToggleStatus(acc.id, acc.status)
+                            }
+                            variant={
+                              acc.status === "ACTIVE"
+                                ? "outline"
+                                : "destructive"
+                            }
                             className={`text-[9px] px-1 py-0 cursor-pointer ${acc.status === "ACTIVE" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500" : ""}`}
                           >
                             {acc.status}
@@ -408,7 +500,7 @@ export default function AdminAccountsPage() {
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             {editingAccountId === acc.id ? (
-                              <Button 
+                              <Button
                                 onClick={() => handleSaveEdit(acc.id)}
                                 size="icon-sm"
                                 variant="outline"
@@ -417,11 +509,20 @@ export default function AdminAccountsPage() {
                                 <Check className="size-4" />
                               </Button>
                             ) : (
-                              <Button onClick={() => startEditAccount(acc)} size="icon-sm" variant="ghost">
+                              <Button
+                                onClick={() => startEditAccount(acc)}
+                                size="icon-sm"
+                                variant="ghost"
+                              >
                                 <Edit2 className="size-4" />
                               </Button>
                             )}
-                            <Button onClick={() => handleDeleteAccount(acc.id)} size="icon-sm" variant="ghost" className="text-destructive hover:bg-destructive/10">
+                            <Button
+                              onClick={() => handleDeleteAccount(acc.id)}
+                              size="icon-sm"
+                              variant="ghost"
+                              className="text-destructive hover:bg-destructive/10"
+                            >
                               <Trash2 className="size-4" />
                             </Button>
                           </div>
@@ -439,13 +540,18 @@ export default function AdminAccountsPage() {
         <Card className="border-border/60 bg-card/65 backdrop-blur-md">
           <CardHeader>
             <CardTitle>Provision New Banking Account</CardTitle>
-            <CardDescription>Manually create a new bank account line for a customer record.</CardDescription>
+            <CardDescription>
+              Manually create a new bank account line for a customer record.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateAccount} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <form
+              onSubmit={handleCreateAccount}
+              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            >
               <div className="space-y-1">
                 <Label htmlFor="customer-id">Customer ID (UUID)</Label>
-                <Input 
+                <Input
                   id="customer-id"
                   placeholder="e.g. e2a1b3c4-..."
                   value={customerId}
@@ -465,7 +571,9 @@ export default function AdminAccountsPage() {
                     <SelectItem value="CURRENT">CURRENT</SelectItem>
                     <SelectItem value="SALARY">SALARY</SelectItem>
                     <SelectItem value="FIXED_DEPOSIT">FIXED DEPOSIT</SelectItem>
-                    <SelectItem value="RECURRING_DEPOSIT">RECURRING DEPOSIT</SelectItem>
+                    <SelectItem value="RECURRING_DEPOSIT">
+                      RECURRING DEPOSIT
+                    </SelectItem>
                     <SelectItem value="NRE">NRE</SelectItem>
                     <SelectItem value="NRO">NRO</SelectItem>
                   </SelectContent>
@@ -474,7 +582,7 @@ export default function AdminAccountsPage() {
 
               <div className="space-y-1">
                 <Label htmlFor="balance-val">Initial Balance (INR)</Label>
-                <Input 
+                <Input
                   id="balance-val"
                   type="number"
                   placeholder="e.g. 50000"
@@ -485,7 +593,7 @@ export default function AdminAccountsPage() {
 
               <div className="space-y-1">
                 <Label htmlFor="rate-val">Interest Rate (%)</Label>
-                <Input 
+                <Input
                   id="rate-val"
                   type="number"
                   step="0.01"
@@ -497,7 +605,7 @@ export default function AdminAccountsPage() {
 
               <div className="space-y-1">
                 <Label htmlFor="ifsc-code">IFSC Code</Label>
-                <Input 
+                <Input
                   id="ifsc-code"
                   value={ifsc}
                   onChange={(e) => setIfsc(e.target.value)}
@@ -507,7 +615,7 @@ export default function AdminAccountsPage() {
 
               <div className="space-y-1">
                 <Label htmlFor="branch-code">Branch Code</Label>
-                <Input 
+                <Input
                   id="branch-code"
                   value={branchCode}
                   onChange={(e) => setBranchCode(e.target.value)}
@@ -515,13 +623,16 @@ export default function AdminAccountsPage() {
                 />
               </div>
 
-              <Button type="submit" className="col-span-full bg-primary font-medium mt-2" disabled={actionLoading}>
+              <Button
+                type="submit"
+                className="col-span-full bg-primary font-medium mt-2"
+                disabled={actionLoading}
+              >
                 {actionLoading ? "Provisioning..." : "Provision Account"}
               </Button>
             </form>
           </CardContent>
         </Card>
-
       </div>
     </main>
   );

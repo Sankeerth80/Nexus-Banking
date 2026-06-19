@@ -13,9 +13,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { publicEnv } from "@/lib/env";
 
-const demoAdminEmail = "admin@gmail.com";
-const demoAdminPassword = "Admin@1234";
+const demoAdminEmail = publicEnv.NEXT_PUBLIC_DEMO_ADMIN_EMAIL;
 
 export function AdminLoginGate({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = React.useState(demoAdminEmail);
@@ -27,7 +27,9 @@ export function AdminLoginGate({ children }: { children: React.ReactNode }) {
     event.preventDefault();
 
     const emailMatches = email.trim().toLowerCase() === demoAdminEmail;
-    const passwordMatches = password === demoAdminPassword;
+    const passwordMatches =
+      password.length > 0 &&
+      password === publicEnv.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD;
 
     if (!emailMatches || !passwordMatches) {
       setError("The email or password is incorrect.");
@@ -48,8 +50,12 @@ export function AdminLoginGate({ children }: { children: React.ReactNode }) {
               <ShieldCheck className="size-4" aria-hidden />
             </span>
             <div>
-              <p className="text-sm font-medium">Signed in as {demoAdminEmail}</p>
-              <p className="text-xs text-muted-foreground">Master admin session</p>
+              <p className="text-sm font-medium">
+                Signed in as {demoAdminEmail}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Master admin session
+              </p>
             </div>
           </div>
           <Button

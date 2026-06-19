@@ -5,10 +5,18 @@ import { useAuth } from "@/components/auth-provider";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Landmark, Lock, Mail, ShieldAlert, Fingerprint } from "lucide-react";
+import { publicEnv } from "@/lib/env";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function AdminLoginPage() {
   const { login, verify2fa, verifyOtp, user } = useAuth();
@@ -17,10 +25,12 @@ export default function AdminLoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [code, setCode] = React.useState("");
-  
-  const [step, setStep] = React.useState<"credentials" | "2fa" | "otp">("credentials");
+
+  const [step, setStep] = React.useState<"credentials" | "2fa" | "otp">(
+    "credentials",
+  );
   const [pendingUserId, setPendingUserId] = React.useState("");
-  
+
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -46,8 +56,8 @@ export default function AdminLoginPage() {
       } else if (res.step === "complete") {
         router.push("/");
       }
-    } catch (err: any) {
-      setError(err.message || "Invalid employee credentials.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Invalid employee credentials."));
     } finally {
       setLoading(false);
     }
@@ -65,8 +75,8 @@ export default function AdminLoginPage() {
         await verifyOtp(pendingUserId, code);
       }
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Invalid verification code.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Invalid verification code."));
     } finally {
       setLoading(false);
     }
@@ -75,7 +85,7 @@ export default function AdminLoginPage() {
   // Pre-fill demo accounts for developers
   const selectDemoAccount = (demoEmail: string) => {
     setEmail(demoEmail);
-    setPassword("Admin@1234");
+    setPassword(publicEnv.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD);
   };
 
   return (
@@ -86,7 +96,9 @@ export default function AdminLoginPage() {
             <Landmark className="size-6 animate-pulse" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Nexus Banking</h1>
-          <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider text-primary/80">Employee Operations Console</p>
+          <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider text-primary/80">
+            Employee Operations Console
+          </p>
         </div>
 
         <Card className="border-border/60 bg-card/65 backdrop-blur-md shadow-xl">
@@ -97,9 +109,12 @@ export default function AdminLoginPage() {
               {step === "otp" && "Email Verification Code"}
             </CardTitle>
             <CardDescription>
-              {step === "credentials" && "Enter your email and credentials to manage the workspace."}
-              {step === "2fa" && "Open your authenticator app and enter the code."}
-              {step === "otp" && `We've sent a 6-digit OTP to your registered email.`}
+              {step === "credentials" &&
+                "Enter your email and credentials to manage the workspace."}
+              {step === "2fa" &&
+                "Open your authenticator app and enter the code."}
+              {step === "otp" &&
+                `We've sent a 6-digit OTP to your registered email.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -147,7 +162,11 @@ export default function AdminLoginPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-primary font-medium shadow-md shadow-primary/10 hover:shadow-primary/20 transition-all" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full bg-primary font-medium shadow-md shadow-primary/10 hover:shadow-primary/20 transition-all"
+                  disabled={loading}
+                >
                   {loading ? "Authenticating..." : "Sign In to Console"}
                 </Button>
               </form>
@@ -170,7 +189,11 @@ export default function AdminLoginPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-primary font-medium" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full bg-primary font-medium"
+                  disabled={loading}
+                >
                   {loading ? "Verifying..." : "Verify Code"}
                 </Button>
 
@@ -189,24 +212,56 @@ export default function AdminLoginPage() {
 
         {step === "credentials" && (
           <Card className="border-border/40 bg-muted/20 p-4">
-            <h3 className="text-xs font-semibold text-muted-foreground tracking-wide uppercase mb-3">Quick Sandbox Login</h3>
+            <h3 className="text-xs font-semibold text-muted-foreground tracking-wide uppercase mb-3">
+              Quick Sandbox Login
+            </h3>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <Button variant="outline" size="sm" onClick={() => selectDemoAccount("ceo@gmail.com")} className="justify-start text-left font-mono">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectDemoAccount("ceo@gmail.com")}
+                className="justify-start text-left font-mono"
+              >
                 ceo@gmail.com (CEO)
               </Button>
-              <Button variant="outline" size="sm" onClick={() => selectDemoAccount("kyc@gmail.com")} className="justify-start text-left font-mono">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectDemoAccount("kyc@gmail.com")}
+                className="justify-start text-left font-mono"
+              >
                 kyc@gmail.com (KYC)
               </Button>
-              <Button variant="outline" size="sm" onClick={() => selectDemoAccount("compliance@gmail.com")} className="justify-start text-left font-mono">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectDemoAccount("compliance@gmail.com")}
+                className="justify-start text-left font-mono"
+              >
                 compliance@gmail.com (CMP)
               </Button>
-              <Button variant="outline" size="sm" onClick={() => selectDemoAccount("risk@gmail.com")} className="justify-start text-left font-mono">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectDemoAccount("risk@gmail.com")}
+                className="justify-start text-left font-mono"
+              >
                 risk@gmail.com (Risk)
               </Button>
-              <Button variant="outline" size="sm" onClick={() => selectDemoAccount("manager@gmail.com")} className="justify-start text-left font-mono">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectDemoAccount("manager@gmail.com")}
+                className="justify-start text-left font-mono"
+              >
                 manager@gmail.com (Mgr)
               </Button>
-              <Button variant="outline" size="sm" onClick={() => selectDemoAccount("admin@gmail.com")} className="justify-start text-left font-mono">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectDemoAccount("admin@gmail.com")}
+                className="justify-start text-left font-mono"
+              >
                 admin@gmail.com (Admin)
               </Button>
             </div>

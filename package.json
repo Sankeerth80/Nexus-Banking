@@ -29,6 +29,8 @@
     "test:e2e": "npm run test:user:e2e && npm run test:admin:e2e",
     "test:user:e2e": "npm --prefix frontend/user-portal run e2e",
     "test:admin:e2e": "npm --prefix frontend/admin-portal run e2e",
+    "audit": "node scripts/audit-gate.mjs",
+    "format:check": "prettier --check . --ignore-path .prettierignore",
     "prisma:generate": "npm --prefix backend run prisma:generate",
     "check:connections": "node scripts/check-connections.mjs"
   },

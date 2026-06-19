@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { RedisService } from '../../cache/redis.service';
 import type { EnvironmentVariables } from '../../config/environment';
+import type { RouteAwareRequest } from '../types/authenticated-request';
 
 @Injectable()
 export class RateLimiterGuard implements CanActivate {
@@ -19,7 +20,7 @@ export class RateLimiterGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const http = context.switchToHttp();
-    const request = http.getRequest<Request>();
+    const request = http.getRequest<RouteAwareRequest>();
 
     // Extract IP address
     const ip =
@@ -28,7 +29,12 @@ export class RateLimiterGuard implements CanActivate {
       'unknown-ip';
 
     // Formulate a key based on route path and client IP
-    const path = (request as any).route?.path || request.url;
+    const routePath = request.route?.path;
+    const path = Array.isArray(routePath)
+      ? routePath.map(String).join('|')
+      : routePath
+        ? String(routePath)
+        : request.url;
     const key = `${ip}:${path}`;
 
     // Get limit and TTL from config or defaults

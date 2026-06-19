@@ -22,7 +22,9 @@ test("renders user net banking portal", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Nexus Banking" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Nexus Banking" }),
+  ).toBeVisible();
   await expect(page.getByText("Secure Customer Portal")).toBeVisible();
   await expect(page.getByText("Enter your email and password")).toBeVisible();
   await expect(page.getByLabel("Email address")).toBeVisible();

@@ -49,7 +49,7 @@ export class RiskService {
   // Detects if current userAgent has been used by this user before.
   // Returns true if the device (userAgent) is new/unseen.
   async checkNewDevice(userId: string, currentUa: string): Promise<boolean> {
-    // Check if user has any prior successful logins
+    // Check if the user has prior successful logins.
     const totalLoginsCount = await this.prisma.auditLog.count({
       where: {
         OR: [{ actorId: userId }, { customerId: userId }],

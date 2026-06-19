@@ -46,6 +46,8 @@ export const environmentSchema = z.object({
   CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
   DEMO_BANKING_MODE: z.enum(['true']).default('true'),
   BANKING_RAILS_MODE: z.enum(['simulation']).default('simulation'),
+  DEMO_ADMIN_EMAIL: z.string().email().default('admin@gmail.com'),
+  DEMO_ADMIN_PASSWORD: optionalString,
 
   DATABASE_URL: optionalUrl,
   DIRECT_URL: optionalUrl,

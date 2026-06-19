@@ -13,7 +13,14 @@ export type UserProfile = {
 type AuthContextType = {
   user: UserProfile | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ step: "complete" | "2fa" | "otp"; userId?: string; email?: string }>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{
+    step: "complete" | "2fa" | "otp";
+    userId?: string;
+    email?: string;
+  }>;
   verify2fa: (userId: string, code: string) => Promise<void>;
   verifyOtp: (userId: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -26,26 +33,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<UserProfile | null>(null);
   const [loading, setLoading] = React.useState(true);
 
-  const apiFetch = React.useCallback(async (path: string, options: RequestInit = {}) => {
-    const baseUrl = publicEnv.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
-    const url = path.startsWith("http") ? path : `${baseUrl}/${path.replace(/^\//, "")}`;
-    
-    const response = await fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
+  const apiFetch = React.useCallback(
+    async (path: string, options: RequestInit = {}) => {
+      const baseUrl = publicEnv.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+      const url = path.startsWith("http")
+        ? path
+        : `${baseUrl}/${path.replace(/^\//, "")}`;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
-    }
+      const response = await fetch(url, {
+        ...options,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      });
 
-    return response.json();
-  }, []);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Request failed with status ${response.status}`,
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
 
   const refreshUser = React.useCallback(async () => {
     try {

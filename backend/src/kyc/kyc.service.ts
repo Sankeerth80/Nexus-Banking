@@ -5,11 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  Customer,
-  Employee,
+  Account,
   EmployeeRole,
   CustomerStatus,
   AccountType,
+  KycRequest,
+  Prisma,
 } from '@prisma/client';
 import { randomInt, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
@@ -21,6 +22,33 @@ import {
   SubmitKycDto,
   UpdateStatusDto,
 } from './dto/kyc.dto';
+
+type KycRequestWithCustomer = Prisma.KycRequestGetPayload<{
+  include: {
+    customer: {
+      select: {
+        id: true;
+        fullName: true;
+        email: true;
+        phone: true;
+        status: true;
+      };
+    };
+  };
+}>;
+
+type KycStatusResponse = {
+  status: CustomerStatus;
+  emailVerified: boolean;
+  kycRequest: KycRequest | null;
+  accounts: Account[];
+};
+
+type ReviewKycResponse = {
+  request: KycRequest;
+  customerStatus: CustomerStatus;
+  accountCreated?: Account;
+};
 
 @Injectable()
 export class KycService {
@@ -63,7 +91,7 @@ export class KycService {
   }
 
   // 2. Submit KYC (Customer)
-  async submitKyc(customerId: string, dto: SubmitKycDto): Promise<any> {
+  async submitKyc(customerId: string, dto: SubmitKycDto): Promise<KycRequest> {
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
     });
@@ -128,7 +156,7 @@ export class KycService {
   }
 
   // 3. Get KYC status (Customer)
-  async getKycStatus(customerId: string): Promise<any> {
+  async getKycStatus(customerId: string): Promise<KycStatusResponse> {
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
       include: { kycRequest: true, accounts: true },
@@ -147,7 +175,7 @@ export class KycService {
   }
 
   // 4. List pending KYC requests (Employee)
-  async getPendingKycRequests(): Promise<any[]> {
+  async getPendingKycRequests(): Promise<KycRequestWithCustomer[]> {
     const requests = await this.prisma.kycRequest.findMany({
       where: {
         customer: {
@@ -171,7 +199,13 @@ export class KycService {
   }
 
   // 5. Get detailed KYC request with presigned URLs (Employee)
-  async getKycRequestDetails(customerId: string): Promise<any> {
+  async getKycRequestDetails(customerId: string): Promise<
+    KycRequestWithCustomer & {
+      idDocUrl: string | null;
+      photoUrl: string | null;
+      signatureUrl: string | null;
+    }
+  > {
     const request = await this.prisma.kycRequest.findUnique({
       where: { customerId },
       include: {
@@ -227,7 +261,7 @@ export class KycService {
     reviewerId: string,
     reviewerRole: EmployeeRole,
     dto: ReviewKycDto,
-  ): Promise<any> {
+  ): Promise<ReviewKycResponse> {
     const request = await this.prisma.kycRequest.findUnique({
       where: { customerId: dto.customerId },
     });
@@ -246,7 +280,7 @@ export class KycService {
     // 4. Branch (Branch Manager) -> Requires Risk approved
     this.validateSequentialFlow(dto.step, request);
 
-    const updateData: any = {};
+    const updateData: Prisma.KycRequestUpdateInput = {};
     const comment = dto.comment || '';
 
     if (dto.step === ReviewStep.DOCUMENT) {
@@ -279,7 +313,10 @@ export class KycService {
         where: { id: dto.customerId },
         data: { status: 'REJECTED' },
       });
-      return { request: updatedRequest, customerStatus: 'REJECTED' };
+      return {
+        request: updatedRequest,
+        customerStatus: CustomerStatus.REJECTED,
+      };
     }
 
     // Handle final step approval
@@ -307,16 +344,18 @@ export class KycService {
 
       return {
         request: updatedRequest,
-        customerStatus: 'APPROVED',
+        customerStatus: CustomerStatus.APPROVED,
         accountCreated: account,
       };
     }
 
-    return { request: updatedRequest, customerStatus: 'PENDING' };
+    return { request: updatedRequest, customerStatus: CustomerStatus.PENDING };
   }
 
   // 7. Manual customer status administration (Admin)
-  async updateCustomerStatus(dto: UpdateStatusDto): Promise<any> {
+  async updateCustomerStatus(
+    dto: UpdateStatusDto,
+  ): Promise<{ customerId: string; status: CustomerStatus }> {
     const customer = await this.prisma.customer.findUnique({
       where: { id: dto.customerId },
     });
@@ -381,7 +420,7 @@ export class KycService {
   }
 
   // Enforce sequential review logic: Document -> Compliance -> Risk -> Branch
-  private validateSequentialFlow(step: ReviewStep, request: any): void {
+  private validateSequentialFlow(step: ReviewStep, request: KycRequest): void {
     if (step === ReviewStep.COMPLIANCE) {
       if (request.documentStatus !== ReviewStatus.APPROVED) {
         throw new BadRequestException(

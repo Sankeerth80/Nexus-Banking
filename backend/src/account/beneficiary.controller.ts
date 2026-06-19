@@ -14,6 +14,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 import { AccountService } from './account.service';
 import { CreateBeneficiaryDto, UpdateBeneficiaryDto } from './dto/account.dto';
 
@@ -26,7 +27,7 @@ export class BeneficiaryController {
   @Get()
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Get all beneficiaries for active customer' })
-  async getMyBeneficiaries(@Req() req: any) {
+  async getMyBeneficiaries(@Req() req: AuthenticatedRequest) {
     const customerId = req.user.userId;
     return this.accountService.getBeneficiariesForCustomer(customerId);
   }
@@ -34,7 +35,10 @@ export class BeneficiaryController {
   @Post()
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Add a new beneficiary' })
-  async addBeneficiary(@Req() req: any, @Body() dto: CreateBeneficiaryDto) {
+  async addBeneficiary(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateBeneficiaryDto,
+  ) {
     const customerId = req.user.userId;
     return this.accountService.createBeneficiary(customerId, dto);
   }
@@ -43,7 +47,7 @@ export class BeneficiaryController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Update beneficiary details' })
   async updateBeneficiary(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateBeneficiaryDto,
   ) {
@@ -62,7 +66,10 @@ export class BeneficiaryController {
   @Delete(':id')
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Delete beneficiary' })
-  async deleteBeneficiary(@Req() req: any, @Param('id') id: string) {
+  async deleteBeneficiary(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     // Verify ownership
     const myBeneficiaries =
       await this.accountService.getBeneficiariesForCustomer(req.user.userId);
@@ -79,7 +86,7 @@ export class BeneficiaryController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Toggle beneficiary active status' })
   async toggleStatus(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body('active') active: boolean,
   ) {

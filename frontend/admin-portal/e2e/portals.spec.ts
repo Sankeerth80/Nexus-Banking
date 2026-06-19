@@ -22,11 +22,15 @@ test("renders admin portal login", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Nexus Banking" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Nexus Banking" }),
+  ).toBeVisible();
   await expect(page.getByText("Employee Operations Console")).toBeVisible();
   await expect(page.getByText("Employee Sign In")).toBeVisible();
   await expect(page.getByLabel("Work Email")).toBeVisible();
   await expect(page.getByLabel("Password")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign In to Console" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign In to Console" }),
+  ).toBeVisible();
   expect(relevantConsoleErrors).toEqual([]);
 });

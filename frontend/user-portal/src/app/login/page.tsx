@@ -6,10 +6,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Landmark, Lock, Mail, ShieldAlert, Fingerprint } from "lucide-react";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function LoginPage() {
   const { login, verify2fa, verifyOtp, user } = useAuth();
@@ -18,10 +25,12 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [code, setCode] = React.useState("");
-  
-  const [step, setStep] = React.useState<"credentials" | "2fa" | "otp">("credentials");
+
+  const [step, setStep] = React.useState<"credentials" | "2fa" | "otp">(
+    "credentials",
+  );
   const [pendingUserId, setPendingUserId] = React.useState("");
-  
+
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -51,8 +60,8 @@ export default function LoginPage() {
       } else if (res.step === "complete") {
         router.push("/");
       }
-    } catch (err: any) {
-      setError(err.message || "Invalid credentials.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Invalid credentials."));
     } finally {
       setLoading(false);
     }
@@ -70,8 +79,8 @@ export default function LoginPage() {
         await verifyOtp(pendingUserId, code);
       }
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Invalid verification code.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Invalid verification code."));
     } finally {
       setLoading(false);
     }
@@ -85,7 +94,9 @@ export default function LoginPage() {
             <Landmark className="size-6 animate-pulse" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Nexus Banking</h1>
-          <p className="text-sm text-muted-foreground">Secure Customer Portal</p>
+          <p className="text-sm text-muted-foreground">
+            Secure Customer Portal
+          </p>
         </div>
 
         <Card className="border-border/60 bg-card/65 backdrop-blur-md shadow-xl">
@@ -96,9 +107,12 @@ export default function LoginPage() {
               {step === "otp" && "Email Verification Code"}
             </CardTitle>
             <CardDescription>
-              {step === "credentials" && "Enter your email and password to access your account."}
-              {step === "2fa" && "Open your authenticator app and enter the code."}
-              {step === "otp" && `We've sent a 6-digit OTP to your registered email.`}
+              {step === "credentials" &&
+                "Enter your email and password to access your account."}
+              {step === "2fa" &&
+                "Open your authenticator app and enter the code."}
+              {step === "otp" &&
+                `We've sent a 6-digit OTP to your registered email.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -146,7 +160,11 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-primary font-medium shadow-md shadow-primary/10 hover:shadow-primary/20 transition-all" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full bg-primary font-medium shadow-md shadow-primary/10 hover:shadow-primary/20 transition-all"
+                  disabled={loading}
+                >
                   {loading ? "Authenticating..." : "Sign In"}
                 </Button>
               </form>
@@ -169,7 +187,11 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-primary font-medium" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full bg-primary font-medium"
+                  disabled={loading}
+                >
                   {loading ? "Verifying..." : "Verify Code"}
                 </Button>
 
@@ -188,7 +210,10 @@ export default function LoginPage() {
 
         <div className="text-center text-sm">
           <span className="text-muted-foreground">New to Nexus? </span>
-          <Link href="/register" className="font-semibold text-primary underline-offset-4 hover:underline">
+          <Link
+            href="/register"
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
             Create an account
           </Link>
         </div>

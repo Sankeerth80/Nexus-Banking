@@ -11,6 +11,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 import { TransferService } from './transfer.service';
 import {
   InitiateTransferDto,
@@ -27,7 +28,10 @@ export class TransferController {
   @Post('initiate')
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Initiate a money transfer and trigger OTP code' })
-  async initiate(@Req() req: any, @Body() dto: InitiateTransferDto) {
+  async initiate(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: InitiateTransferDto,
+  ) {
     const customerId = req.user.userId;
     return this.transferService.initiateTransfer(customerId, dto);
   }
@@ -36,7 +40,7 @@ export class TransferController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Verify 2FA TOTP code for transfer authorization' })
   async verify2Fa(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: VerifyTransferDto,
   ) {
@@ -48,7 +52,7 @@ export class TransferController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Verify email OTP and execute transfer' })
   async verifyOtp(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: VerifyTransferDto,
   ) {
@@ -61,7 +65,7 @@ export class TransferController {
   @ApiOperation({
     summary: 'Retrieve transfer transaction history for active customer',
   })
-  async getMyHistory(@Req() req: any) {
+  async getMyHistory(@Req() req: AuthenticatedRequest) {
     const customerId = req.user.userId;
     return this.transferService.getTransferHistory(customerId);
   }
@@ -108,7 +112,7 @@ export class TransferController {
   @Roles('CEO', 'BRANCH_MANAGER', 'RISK_OFFICER', 'COMPLIANCE_OFFICER')
   @ApiOperation({ summary: 'Approve or reject a held transfer' })
   async review(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: ReviewTransferDto,
   ) {
@@ -124,7 +128,7 @@ export class TransferController {
   @Post(':id/cancel')
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Cancel a pending scheduled transfer' })
-  async cancel(@Req() req: any, @Param('id') id: string) {
+  async cancel(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const customerId = req.user.userId;
     return this.transferService.cancelScheduledTransfer(customerId, id);
   }

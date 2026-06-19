@@ -5,12 +5,34 @@ import { useAuth } from "@/components/auth-provider";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Landmark, Upload, CheckCircle, FileText, Image as ImageIcon, PenTool, ShieldCheck, AlertCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Landmark,
+  Upload,
+  CheckCircle,
+  FileText,
+  Image as ImageIcon,
+  PenTool,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
 import { publicEnv } from "@/lib/env";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function KycPage() {
   const { user, refreshUser } = useAuth();
@@ -39,12 +61,15 @@ export default function KycPage() {
     }
   }, [user, router]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "ID_PROOF" | "PHOTO" | "SIGNATURE") => {
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "ID_PROOF" | "PHOTO" | "SIGNATURE",
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadError("");
-    setUploading(prev => ({ ...prev, [type]: true }));
+    setUploading((prev) => ({ ...prev, [type]: true }));
 
     const formData = new FormData();
     formData.append("file", file);
@@ -69,10 +94,10 @@ export default function KycPage() {
       if (type === "ID_PROOF") setIdDocKey(fileUrl);
       if (type === "PHOTO") setPhotoKey(fileUrl);
       if (type === "SIGNATURE") setSignatureKey(fileUrl);
-    } catch (err: any) {
-      setUploadError(err.message || "Error uploading file.");
+    } catch (error: unknown) {
+      setUploadError(getErrorMessage(error, "Error uploading file."));
     } finally {
-      setUploading(prev => ({ ...prev, [type]: false }));
+      setUploading((prev) => ({ ...prev, [type]: false }));
     }
   };
 
@@ -81,7 +106,9 @@ export default function KycPage() {
     setSubmitError("");
 
     if (!idType || !idNumber || !idDocKey || !photoKey || !signatureKey) {
-      setSubmitError("Please fill out all fields and upload all required documents.");
+      setSubmitError(
+        "Please fill out all fields and upload all required documents.",
+      );
       return;
     }
 
@@ -111,8 +138,8 @@ export default function KycPage() {
 
       await refreshUser();
       router.push("/");
-    } catch (err: any) {
-      setSubmitError(err.message || "Error submitting KYC.");
+    } catch (error: unknown) {
+      setSubmitError(getErrorMessage(error, "Error submitting KYC."));
     } finally {
       setSubmitting(false);
     }
@@ -127,8 +154,12 @@ export default function KycPage() {
           <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
             <Landmark className="size-6" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">KYC Verification</h1>
-          <p className="text-sm text-muted-foreground">Submit your identity details to verify your banking account.</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            KYC Verification
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Submit your identity details to verify your banking account.
+          </p>
         </div>
 
         {user.status === "REJECTED" && (
@@ -136,7 +167,8 @@ export default function KycPage() {
             <AlertCircle className="size-4" />
             <AlertTitle>KYC Application Rejected</AlertTitle>
             <AlertDescription>
-              Your previous KYC details were rejected. Please review the details below, re-upload clean documents, and submit again.
+              Your previous KYC details were rejected. Please review the details
+              below, re-upload clean documents, and submit again.
             </AlertDescription>
           </Alert>
         )}
@@ -145,7 +177,8 @@ export default function KycPage() {
           <CardHeader>
             <CardTitle>Identity Documentation</CardTitle>
             <CardDescription>
-              We are required by financial regulations to verify your identity. Please upload clear documents.
+              We are required by financial regulations to verify your identity.
+              Please upload clear documents.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -177,7 +210,9 @@ export default function KycPage() {
                       <SelectItem value="PAN">PAN Card</SelectItem>
                       <SelectItem value="Aadhaar">Aadhaar Card</SelectItem>
                       <SelectItem value="Passport">Passport</SelectItem>
-                      <SelectItem value="DriverLicense">Driving License</SelectItem>
+                      <SelectItem value="DriverLicense">
+                        Driving License
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -198,9 +233,13 @@ export default function KycPage() {
                 {/* 1. ID Doc Proof */}
                 <div className="space-y-2 flex flex-col items-center border border-dashed border-border/80 rounded-xl p-4 bg-muted/10 relative hover:bg-muted/20 transition-colors">
                   <FileText className="size-8 text-primary mb-2" />
-                  <span className="text-xs font-semibold text-center">ID Proof Copy</span>
-                  <p className="text-[10px] text-muted-foreground text-center mb-4">PNG, JPG, or PDF</p>
-                  
+                  <span className="text-xs font-semibold text-center">
+                    ID Proof Copy
+                  </span>
+                  <p className="text-[10px] text-muted-foreground text-center mb-4">
+                    PNG, JPG, or PDF
+                  </p>
+
                   {idDocKey ? (
                     <div className="flex items-center gap-1 text-xs text-emerald-500 font-semibold mt-auto">
                       <CheckCircle className="size-4" /> Uploaded
@@ -225,9 +264,13 @@ export default function KycPage() {
                 {/* 2. Photo */}
                 <div className="space-y-2 flex flex-col items-center border border-dashed border-border/80 rounded-xl p-4 bg-muted/10 relative hover:bg-muted/20 transition-colors">
                   <ImageIcon className="size-8 text-primary mb-2" />
-                  <span className="text-xs font-semibold text-center">Passport Photo</span>
-                  <p className="text-[10px] text-muted-foreground text-center mb-4">Clear face photo (PNG, JPG)</p>
-                  
+                  <span className="text-xs font-semibold text-center">
+                    Passport Photo
+                  </span>
+                  <p className="text-[10px] text-muted-foreground text-center mb-4">
+                    Clear face photo (PNG, JPG)
+                  </p>
+
                   {photoKey ? (
                     <div className="flex items-center gap-1 text-xs text-emerald-500 font-semibold mt-auto">
                       <CheckCircle className="size-4" /> Uploaded
@@ -252,9 +295,13 @@ export default function KycPage() {
                 {/* 3. Signature */}
                 <div className="space-y-2 flex flex-col items-center border border-dashed border-border/80 rounded-xl p-4 bg-muted/10 relative hover:bg-muted/20 transition-colors">
                   <PenTool className="size-8 text-primary mb-2" />
-                  <span className="text-xs font-semibold text-center">Signature Scan</span>
-                  <p className="text-[10px] text-muted-foreground text-center mb-4">Signed paper photo (PNG, JPG)</p>
-                  
+                  <span className="text-xs font-semibold text-center">
+                    Signature Scan
+                  </span>
+                  <p className="text-[10px] text-muted-foreground text-center mb-4">
+                    Signed paper photo (PNG, JPG)
+                  </p>
+
                   {signatureKey ? (
                     <div className="flex items-center gap-1 text-xs text-emerald-500 font-semibold mt-auto">
                       <CheckCircle className="size-4" /> Uploaded
@@ -263,7 +310,9 @@ export default function KycPage() {
                     <label className="mt-auto w-full">
                       <span className="flex items-center justify-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs text-primary hover:bg-primary/20 cursor-pointer font-medium transition-colors">
                         <Upload className="size-3.5" />
-                        {uploading["SIGNATURE"] ? "Uploading..." : "Upload File"}
+                        {uploading["SIGNATURE"]
+                          ? "Uploading..."
+                          : "Upload File"}
                       </span>
                       <input
                         type="file"
@@ -280,7 +329,14 @@ export default function KycPage() {
               <Button
                 type="submit"
                 className="w-full bg-primary font-medium shadow-md shadow-primary/10 hover:shadow-primary/20 transition-all mt-4"
-                disabled={submitting || !idType || !idNumber || !idDocKey || !photoKey || !signatureKey}
+                disabled={
+                  submitting ||
+                  !idType ||
+                  !idNumber ||
+                  !idDocKey ||
+                  !photoKey ||
+                  !signatureKey
+                }
               >
                 {submitting ? "Submitting KYC..." : "Submit KYC Application"}
               </Button>

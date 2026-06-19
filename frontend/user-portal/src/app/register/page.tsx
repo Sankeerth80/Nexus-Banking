@@ -5,11 +5,27 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Landmark, Check, X, ShieldCheck, Mail, Phone, User, Lock } from "lucide-react";
+import {
+  Landmark,
+  Check,
+  X,
+  ShieldCheck,
+  Mail,
+  Phone,
+  User,
+  Lock,
+} from "lucide-react";
 import { publicEnv } from "@/lib/env";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -29,7 +45,8 @@ export default function RegisterPage() {
   const meetsLower = /[a-z]/.test(password);
   const meetsNumber = /[0-9]/.test(password);
   const meetsSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  const isPasswordValid = meetsLength && meetsUpper && meetsLower && meetsNumber && meetsSpecial;
+  const isPasswordValid =
+    meetsLength && meetsUpper && meetsLower && meetsNumber && meetsSpecial;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,8 +83,8 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push("/login");
       }, 4000);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Something went wrong."));
     } finally {
       setLoading(false);
     }
@@ -80,7 +97,11 @@ export default function RegisterPage() {
       ) : (
         <X className="size-3.5 text-muted-foreground/60" />
       )}
-      <span className={met ? "text-emerald-500 font-medium" : "text-muted-foreground"}>
+      <span
+        className={
+          met ? "text-emerald-500 font-medium" : "text-muted-foreground"
+        }
+      >
         {label}
       </span>
     </div>
@@ -96,11 +117,14 @@ export default function RegisterPage() {
           <div className="space-y-2">
             <h2 className="text-2xl font-bold">Registration Successful!</h2>
             <p className="text-sm text-muted-foreground">
-              Your customer profile has been created. A verification code has been sent to your email address: <strong className="text-foreground">{email}</strong>.
+              Your customer profile has been created. A verification code has
+              been sent to your email address:{" "}
+              <strong className="text-foreground">{email}</strong>.
             </p>
           </div>
           <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-            Redirecting you to the login screen to verify your email and sign in...
+            Redirecting you to the login screen to verify your email and sign
+            in...
           </div>
         </Card>
       </div>
@@ -115,13 +139,17 @@ export default function RegisterPage() {
             <Landmark className="size-6" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Nexus Banking</h1>
-          <p className="text-sm text-muted-foreground">Open a Sim-Only Net Banking Profile</p>
+          <p className="text-sm text-muted-foreground">
+            Open a Sim-Only Net Banking Profile
+          </p>
         </div>
 
         <Card className="border-border/60 bg-card/65 backdrop-blur-md shadow-xl">
           <CardHeader>
             <CardTitle>Create Account</CardTitle>
-            <CardDescription>Get started in minutes with our digitized banking platform.</CardDescription>
+            <CardDescription>
+              Get started in minutes with our digitized banking platform.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -196,12 +224,29 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="rounded-lg border border-border/40 bg-muted/20 p-3 space-y-1.5 mt-2">
-                  <span className="text-xs font-semibold text-muted-foreground block mb-1">Password Requirements:</span>
-                  {renderPasswordRequirement("Minimum 8 characters", meetsLength)}
-                  {renderPasswordRequirement("At least one uppercase letter", meetsUpper)}
-                  {renderPasswordRequirement("At least one lowercase letter", meetsLower)}
-                  {renderPasswordRequirement("At least one number", meetsNumber)}
-                  {renderPasswordRequirement("At least one special character", meetsSpecial)}
+                  <span className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Password Requirements:
+                  </span>
+                  {renderPasswordRequirement(
+                    "Minimum 8 characters",
+                    meetsLength,
+                  )}
+                  {renderPasswordRequirement(
+                    "At least one uppercase letter",
+                    meetsUpper,
+                  )}
+                  {renderPasswordRequirement(
+                    "At least one lowercase letter",
+                    meetsLower,
+                  )}
+                  {renderPasswordRequirement(
+                    "At least one number",
+                    meetsNumber,
+                  )}
+                  {renderPasswordRequirement(
+                    "At least one special character",
+                    meetsSpecial,
+                  )}
                 </div>
               </div>
 
@@ -217,8 +262,13 @@ export default function RegisterPage() {
         </Card>
 
         <div className="text-center text-sm">
-          <span className="text-muted-foreground">Already have an account? </span>
-          <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
+          <span className="text-muted-foreground">
+            Already have an account?{" "}
+          </span>
+          <Link
+            href="/login"
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
             Sign in
           </Link>
         </div>

@@ -39,14 +39,34 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { publicEnv } from "@/lib/env";
+import { getErrorMessage } from "@/lib/errors";
 
 type Account = {
   id: string;
@@ -104,7 +124,9 @@ export default function AccountsPage() {
   const [editIfscCode, setEditIfscCode] = React.useState("");
 
   // Download statement state
-  const [statementLoading, setStatementLoading] = React.useState<string | null>(null);
+  const [statementLoading, setStatementLoading] = React.useState<string | null>(
+    null,
+  );
 
   // Guard routing
   React.useEffect(() => {
@@ -114,26 +136,33 @@ export default function AccountsPage() {
   }, [user, loading, router]);
 
   // apiFetch wrapper
-  const apiFetch = React.useCallback(async (path: string, options: RequestInit = {}) => {
-    const baseUrl = publicEnv.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
-    const url = path.startsWith("http") ? path : `${baseUrl}/${path.replace(/^\//, "")}`;
-    
-    const response = await fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
+  const apiFetch = React.useCallback(
+    async (path: string, options: RequestInit = {}) => {
+      const baseUrl = publicEnv.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+      const url = path.startsWith("http")
+        ? path
+        : `${baseUrl}/${path.replace(/^\//, "")}`;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
-    }
+      const response = await fetch(url, {
+        ...options,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      });
 
-    return response.json();
-  }, []);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Request failed with status ${response.status}`,
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
 
   const fetchAccounts = React.useCallback(async () => {
     setAccountsLoading(true);
@@ -180,15 +209,22 @@ export default function AccountsPage() {
           customerId: user?.id,
           type: newAccountType,
           balance: initialBalance ? Number(initialBalance) : 0,
-          interestRate: newAccountType === "SAVINGS" ? 3.5 : newAccountType === "FIXED_DEPOSIT" ? 6.5 : 0.0,
+          interestRate:
+            newAccountType === "SAVINGS"
+              ? 3.5
+              : newAccountType === "FIXED_DEPOSIT"
+                ? 6.5
+                : 0.0,
         }),
       });
 
-      setNewAccountSuccess(`Your new ${newAccountType.replace("_", " ")} account has been created successfully!`);
+      setNewAccountSuccess(
+        `Your new ${newAccountType.replace("_", " ")} account has been created successfully!`,
+      );
       setInitialBalance("");
       fetchAccounts();
-    } catch (err: any) {
-      setNewAccountError(err.message || "Failed to open account.");
+    } catch (error: unknown) {
+      setNewAccountError(getErrorMessage(error, "Failed to open account."));
     } finally {
       setCreateAccountLoading(false);
     }
@@ -218,8 +254,8 @@ export default function AccountsPage() {
       setBankName("");
       setIfscCode("");
       fetchBeneficiaries();
-    } catch (err: any) {
-      setBenError(err.message || "Failed to add beneficiary.");
+    } catch (error: unknown) {
+      setBenError(getErrorMessage(error, "Failed to add beneficiary."));
     } finally {
       setAddBenLoading(false);
     }
@@ -278,11 +314,16 @@ export default function AccountsPage() {
   };
 
   // Statement download handler
-  const handleDownloadStatement = async (accountId: string, accountNumber: string) => {
+  const handleDownloadStatement = async (
+    accountId: string,
+    accountNumber: string,
+  ) => {
     setStatementLoading(accountId);
     try {
-      const { downloadUrl } = await apiFetch(`/accounts/${accountId}/statement`);
-      
+      const { downloadUrl } = await apiFetch(
+        `/accounts/${accountId}/statement`,
+      );
+
       // Dynamic client-side download trigger
       const link = document.createElement("a");
       link.href = downloadUrl;
@@ -290,8 +331,8 @@ export default function AccountsPage() {
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
-    } catch (err: any) {
-      alert(err.message || "Failed to download statement.");
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, "Failed to download statement."));
     } finally {
       setStatementLoading(null);
     }
@@ -316,19 +357,34 @@ export default function AccountsPage() {
           </div>
 
           <nav className="flex items-center gap-4 ml-6">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
               Dashboard
             </Link>
-            <Link href="/accounts" className="text-sm font-semibold text-primary transition-colors">
+            <Link
+              href="/accounts"
+              className="text-sm font-semibold text-primary transition-colors"
+            >
               Accounts & Beneficiaries
             </Link>
-            <Link href="/cards" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/cards"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
               Card Management
             </Link>
           </nav>
 
           <ThemeToggle />
-          <Button onClick={logout} variant="ghost" size="icon" className="ml-auto" aria-label="Log out">
+          <Button
+            onClick={logout}
+            variant="ghost"
+            size="icon"
+            className="ml-auto"
+            aria-label="Log out"
+          >
             <LogOut className="size-5" />
           </Button>
         </div>
@@ -339,7 +395,9 @@ export default function AccountsPage() {
           <div className="max-w-3xl space-y-2">
             <div className="flex flex-wrap gap-2">
               <Badge className="bg-emerald-500">Secure Core Link</Badge>
-              <Badge variant="outline">Client ID: {user.id.slice(0, 8).toUpperCase()}</Badge>
+              <Badge variant="outline">
+                Client ID: {user.id.slice(0, 8).toUpperCase()}
+              </Badge>
             </div>
             <h2 className="text-2xl font-semibold tracking-normal sm:text-3xl">
               Account Management Center
@@ -355,40 +413,70 @@ export default function AccountsPage() {
             </div>
           ) : accounts.length === 0 ? (
             <div className="col-span-full py-8 text-center border rounded-lg bg-card/40">
-              <p className="text-sm text-muted-foreground">No active bank accounts found.</p>
+              <p className="text-sm text-muted-foreground">
+                No active bank accounts found.
+              </p>
             </div>
           ) : (
             accounts.map((acc) => (
-              <Card key={acc.id} className="border-border/60 bg-card/65 backdrop-blur-sm shadow hover:shadow-md transition-all">
+              <Card
+                key={acc.id}
+                className="border-border/60 bg-card/65 backdrop-blur-sm shadow hover:shadow-md transition-all"
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-muted-foreground tracking-wider uppercase">{acc.type.replace("_", " ")}</span>
-                    <Badge variant={acc.status === "ACTIVE" ? "outline" : "destructive"} className={acc.status === "ACTIVE" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-[10px]" : "text-[10px]"}>
+                    <span className="text-xs font-mono text-muted-foreground tracking-wider uppercase">
+                      {acc.type.replace("_", " ")}
+                    </span>
+                    <Badge
+                      variant={
+                        acc.status === "ACTIVE" ? "outline" : "destructive"
+                      }
+                      className={
+                        acc.status === "ACTIVE"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-[10px]"
+                          : "text-[10px]"
+                      }
+                    >
                       {acc.status}
                     </Badge>
                   </div>
-                  <CardTitle className="text-lg font-mono pt-1">{acc.accountNumber}</CardTitle>
-                  <CardDescription className="text-xs pt-0.5">IFSC: {acc.ifsc} | Branch: {acc.branchCode}</CardDescription>
+                  <CardTitle className="text-lg font-mono pt-1">
+                    {acc.accountNumber}
+                  </CardTitle>
+                  <CardDescription className="text-xs pt-0.5">
+                    IFSC: {acc.ifsc} | Branch: {acc.branchCode}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-xs text-muted-foreground">Balance</span>
+                    <span className="text-xs text-muted-foreground">
+                      Balance
+                    </span>
                     <span className="text-2xl font-bold text-primary">
                       {acc.currency} {Number(acc.balance).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
                     <span>Interest Rate</span>
-                    <span className="font-semibold text-foreground">{acc.interestRate}% p.a.</span>
+                    <span className="font-semibold text-foreground">
+                      {acc.interestRate}% p.a.
+                    </span>
                   </div>
-                  <Button 
-                    onClick={() => handleDownloadStatement(acc.id, acc.accountNumber)}
+                  <Button
+                    onClick={() =>
+                      handleDownloadStatement(acc.id, acc.accountNumber)
+                    }
                     disabled={statementLoading === acc.id}
-                    variant="outline" 
+                    variant="outline"
                     className="w-full text-xs py-1.5 h-auto gap-1"
                   >
-                    <Download className={`size-3.5 ${statementLoading === acc.id ? "animate-bounce" : ""}`} /> 
-                    {statementLoading === acc.id ? "Generating..." : "Download Statement"}
+                    <Download
+                      className={`size-3.5 ${statementLoading === acc.id ? "animate-bounce" : ""}`}
+                    />
+                    {statementLoading === acc.id
+                      ? "Generating..."
+                      : "Download Statement"}
                   </Button>
                 </CardContent>
               </Card>
@@ -398,12 +486,13 @@ export default function AccountsPage() {
 
         {/* Action Panel Split: Open Account & Beneficiary Management */}
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          
           {/* Apply/Create Account Form */}
           <Card className="border-border/60 bg-card/65 backdrop-blur-md">
             <CardHeader>
               <CardTitle>Open Secondary Account</CardTitle>
-              <CardDescription>Request a supplementary banking line within our platform.</CardDescription>
+              <CardDescription>
+                Request a supplementary banking line within our platform.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {newAccountSuccess && (
@@ -424,25 +513,42 @@ export default function AccountsPage() {
               <form onSubmit={handleCreateAccount} className="space-y-4">
                 <div className="space-y-1">
                   <Label htmlFor="account-type">Product Line Type</Label>
-                  <Select onValueChange={setNewAccountType} value={newAccountType}>
+                  <Select
+                    onValueChange={setNewAccountType}
+                    value={newAccountType}
+                  >
                     <SelectTrigger id="account-type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="SAVINGS">Savings Account (3.5% Int.)</SelectItem>
-                      <SelectItem value="CURRENT">Current Account (No Interest)</SelectItem>
-                      <SelectItem value="SALARY">Salary Account (Corporate)</SelectItem>
-                      <SelectItem value="FIXED_DEPOSIT">Fixed Deposit (6.5% Int.)</SelectItem>
-                      <SelectItem value="RECURRING_DEPOSIT">Recurring Deposit (5.8% Int.)</SelectItem>
-                      <SelectItem value="NRE">NRE Account (Non-Resident External)</SelectItem>
-                      <SelectItem value="NRO">NRO Account (Non-Resident Ordinary)</SelectItem>
+                      <SelectItem value="SAVINGS">
+                        Savings Account (3.5% Int.)
+                      </SelectItem>
+                      <SelectItem value="CURRENT">
+                        Current Account (No Interest)
+                      </SelectItem>
+                      <SelectItem value="SALARY">
+                        Salary Account (Corporate)
+                      </SelectItem>
+                      <SelectItem value="FIXED_DEPOSIT">
+                        Fixed Deposit (6.5% Int.)
+                      </SelectItem>
+                      <SelectItem value="RECURRING_DEPOSIT">
+                        Recurring Deposit (5.8% Int.)
+                      </SelectItem>
+                      <SelectItem value="NRE">
+                        NRE Account (Non-Resident External)
+                      </SelectItem>
+                      <SelectItem value="NRO">
+                        NRO Account (Non-Resident Ordinary)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-1">
                   <Label htmlFor="balance">Initial Opening Deposit (INR)</Label>
-                  <Input 
+                  <Input
                     id="balance"
                     type="number"
                     placeholder="e.g. 10000"
@@ -451,8 +557,14 @@ export default function AccountsPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-primary font-medium" disabled={createAccountLoading}>
-                  {createAccountLoading ? "Provisioning..." : "Submit Application"}
+                <Button
+                  type="submit"
+                  className="w-full bg-primary font-medium"
+                  disabled={createAccountLoading}
+                >
+                  {createAccountLoading
+                    ? "Provisioning..."
+                    : "Submit Application"}
                 </Button>
               </form>
             </CardContent>
@@ -462,69 +574,92 @@ export default function AccountsPage() {
           <Card className="border-border/60 bg-card/65 backdrop-blur-md">
             <CardHeader>
               <CardTitle>Transfer Beneficiaries</CardTitle>
-              <CardDescription>Configure external payees for simulated transactions.</CardDescription>
+              <CardDescription>
+                Configure external payees for simulated transactions.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              
               {/* Beneficiary Form */}
               <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
-                <h3 className="text-xs font-semibold text-primary uppercase tracking-wide">Register New Payee</h3>
-                
+                <h3 className="text-xs font-semibold text-primary uppercase tracking-wide">
+                  Register New Payee
+                </h3>
+
                 {benSuccess && (
                   <Alert className="border-emerald-500/25 bg-emerald-500/5 text-emerald-500 py-2">
                     <Check className="size-4" />
-                    <AlertDescription className="text-xs">{benSuccess}</AlertDescription>
+                    <AlertDescription className="text-xs">
+                      {benSuccess}
+                    </AlertDescription>
                   </Alert>
                 )}
                 {benError && (
                   <Alert variant="destructive" className="py-2">
                     <AlertCircle className="size-4" />
-                    <AlertDescription className="text-xs">{benError}</AlertDescription>
+                    <AlertDescription className="text-xs">
+                      {benError}
+                    </AlertDescription>
                   </Alert>
                 )}
 
-                <form onSubmit={handleAddBeneficiary} className="grid gap-3 sm:grid-cols-2">
+                <form
+                  onSubmit={handleAddBeneficiary}
+                  className="grid gap-3 sm:grid-cols-2"
+                >
                   <div className="space-y-1">
-                    <Label htmlFor="ben-nickname" className="text-xs">Nickname</Label>
-                    <Input 
-                      id="ben-nickname" 
-                      placeholder="e.g. Mom" 
+                    <Label htmlFor="ben-nickname" className="text-xs">
+                      Nickname
+                    </Label>
+                    <Input
+                      id="ben-nickname"
+                      placeholder="e.g. Mom"
                       value={nickname}
                       onChange={(e) => setNickname(e.target.value)}
-                      required 
+                      required
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="ben-number" className="text-xs">Account Number / UPI ID</Label>
-                    <Input 
-                      id="ben-number" 
-                      placeholder="ACC-98765432" 
+                    <Label htmlFor="ben-number" className="text-xs">
+                      Account Number / UPI ID
+                    </Label>
+                    <Input
+                      id="ben-number"
+                      placeholder="ACC-98765432"
                       value={accNum}
                       onChange={(e) => setAccNum(e.target.value)}
-                      required 
+                      required
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="ben-bank" className="text-xs">Bank Name</Label>
-                    <Input 
-                      id="ben-bank" 
-                      placeholder="e.g. State Bank of India" 
+                    <Label htmlFor="ben-bank" className="text-xs">
+                      Bank Name
+                    </Label>
+                    <Input
+                      id="ben-bank"
+                      placeholder="e.g. State Bank of India"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      required 
+                      required
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="ben-ifsc" className="text-xs">Bank IFSC Code</Label>
-                    <Input 
-                      id="ben-ifsc" 
-                      placeholder="SBIN0001234" 
+                    <Label htmlFor="ben-ifsc" className="text-xs">
+                      Bank IFSC Code
+                    </Label>
+                    <Input
+                      id="ben-ifsc"
+                      placeholder="SBIN0001234"
                       value={ifscCode}
                       onChange={(e) => setIfscCode(e.target.value)}
-                      required 
+                      required
                     />
                   </div>
-                  <Button type="submit" size="sm" className="col-span-full bg-primary text-xs mt-2" disabled={addBenLoading}>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="col-span-full bg-primary text-xs mt-2"
+                    disabled={addBenLoading}
+                  >
                     <Plus className="size-3.5 mr-1" /> Register Payee
                   </Button>
                 </form>
@@ -532,20 +667,26 @@ export default function AccountsPage() {
 
               {/* Beneficiary Registry Table */}
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Registered Payees</h3>
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Registered Payees
+                </h3>
                 {beneficiariesLoading ? (
                   <div className="text-center py-6 text-xs text-muted-foreground animate-pulse">
                     Syncing beneficiary matrix...
                   </div>
                 ) : beneficiaries.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">No registered payees.</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">
+                    No registered payees.
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="text-xs">Payee</TableHead>
-                          <TableHead className="text-xs">Account Details</TableHead>
+                          <TableHead className="text-xs">
+                            Account Details
+                          </TableHead>
                           <TableHead className="text-xs">Status</TableHead>
                           <TableHead className="text-xs"></TableHead>
                         </TableRow>
@@ -555,43 +696,59 @@ export default function AccountsPage() {
                           <TableRow key={b.id}>
                             <TableCell>
                               {editingBenId === b.id ? (
-                                <Input 
+                                <Input
                                   value={editNickname}
-                                  onChange={(e) => setEditNickname(e.target.value)}
+                                  onChange={(e) =>
+                                    setEditNickname(e.target.value)
+                                  }
                                   className="h-7 text-xs w-28"
                                 />
                               ) : (
                                 <div>
-                                  <p className="font-semibold text-xs text-foreground">{b.nickname}</p>
-                                  <p className="text-[10px] text-muted-foreground">{b.bankName}</p>
+                                  <p className="font-semibold text-xs text-foreground">
+                                    {b.nickname}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {b.bankName}
+                                  </p>
                                 </div>
                               )}
                             </TableCell>
                             <TableCell>
                               {editingBenId === b.id ? (
                                 <div className="space-y-1">
-                                  <Input 
+                                  <Input
                                     value={editAccNum}
-                                    onChange={(e) => setEditAccNum(e.target.value)}
+                                    onChange={(e) =>
+                                      setEditAccNum(e.target.value)
+                                    }
                                     className="h-7 text-xs w-32"
                                   />
-                                  <Input 
+                                  <Input
                                     value={editIfscCode}
-                                    onChange={(e) => setEditIfscCode(e.target.value)}
+                                    onChange={(e) =>
+                                      setEditIfscCode(e.target.value)
+                                    }
                                     className="h-7 text-xs w-32"
                                   />
                                 </div>
                               ) : (
                                 <div>
-                                  <p className="font-mono text-xs text-foreground">{b.accountNumber}</p>
-                                  <p className="font-mono text-[9px] text-muted-foreground">IFSC: {b.ifsc}</p>
+                                  <p className="font-mono text-xs text-foreground">
+                                    {b.accountNumber}
+                                  </p>
+                                  <p className="font-mono text-[9px] text-muted-foreground">
+                                    IFSC: {b.ifsc}
+                                  </p>
                                 </div>
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge 
-                                onClick={() => handleToggleBenStatus(b.id, b.active)}
-                                variant={b.active ? "outline" : "destructive"} 
+                              <Badge
+                                onClick={() =>
+                                  handleToggleBenStatus(b.id, b.active)
+                                }
+                                variant={b.active ? "outline" : "destructive"}
                                 className={`text-[9px] px-1 py-0 cursor-pointer ${b.active ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500" : ""}`}
                               >
                                 {b.active ? "ACTIVE" : "INACTIVE"}
@@ -600,8 +757,10 @@ export default function AccountsPage() {
                             <TableCell>
                               <div className="flex items-center gap-1.5">
                                 {editingBenId === b.id ? (
-                                  <Button 
-                                    onClick={() => handleSaveEditBeneficiary(b.id)}
+                                  <Button
+                                    onClick={() =>
+                                      handleSaveEditBeneficiary(b.id)
+                                    }
                                     size="icon-sm"
                                     variant="outline"
                                     className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
@@ -609,11 +768,20 @@ export default function AccountsPage() {
                                     <Check className="size-3.5" />
                                   </Button>
                                 ) : (
-                                  <Button onClick={() => startEditBen(b)} size="icon-sm" variant="ghost">
+                                  <Button
+                                    onClick={() => startEditBen(b)}
+                                    size="icon-sm"
+                                    variant="ghost"
+                                  >
                                     <Edit2 className="size-3.5" />
                                   </Button>
                                 )}
-                                <Button onClick={() => handleDeleteBeneficiary(b.id)} size="icon-sm" variant="ghost" className="text-destructive hover:bg-destructive/10">
+                                <Button
+                                  onClick={() => handleDeleteBeneficiary(b.id)}
+                                  size="icon-sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:bg-destructive/10"
+                                >
                                   <Trash2 className="size-3.5" />
                                 </Button>
                               </div>
@@ -625,10 +793,8 @@ export default function AccountsPage() {
                   </div>
                 )}
               </div>
-
             </CardContent>
           </Card>
-
         </div>
 
         <Separator />

@@ -17,7 +17,7 @@ import { TransferStatus, TransferType } from '@prisma/client';
 
 @Injectable()
 export class TransferService implements OnModuleInit, OnModuleDestroy {
-  private intervalId: any;
+  private intervalId?: ReturnType<typeof setInterval>;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -27,12 +27,12 @@ export class TransferService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    // Start interval to process scheduled transfers every 30 seconds
     this.intervalId = setInterval(() => {
       this.processScheduledTransfers().catch((err) => {
         console.error('Error processing scheduled transfers:', err);
       });
     }, 30000);
+    this.intervalId.unref?.();
   }
 
   onModuleDestroy() {

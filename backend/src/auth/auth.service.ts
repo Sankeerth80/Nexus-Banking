@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { Customer, Employee, EmployeeRole } from '@prisma/client';
+import { Customer, Employee } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
@@ -608,7 +608,7 @@ export class AuthService {
       userAgent,
     );
 
-    const userProfile = { ...user } as Record<string, any>;
+    const userProfile = { ...user } as Record<string, unknown>;
     delete userProfile.passwordHash;
     delete userProfile.twoFactorSecret;
 

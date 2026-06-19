@@ -12,6 +12,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 import { CardService } from './card.service';
 import {
   CreateCreditCardDto,
@@ -33,7 +34,7 @@ export class CardController {
   @Get()
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'List all cards for the active customer' })
-  async getMyCards(@Req() req: any) {
+  async getMyCards(@Req() req: AuthenticatedRequest) {
     const customerId = req.user.userId;
     return this.cardService.getCards(customerId);
   }
@@ -41,7 +42,10 @@ export class CardController {
   @Post('debit')
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Request a new debit card linked to account' })
-  async requestDebit(@Req() req: any, @Body() dto: CreateDebitCardDto) {
+  async requestDebit(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateDebitCardDto,
+  ) {
     const customerId = req.user.userId;
     return this.cardService.createDebitCard(customerId, dto);
   }
@@ -49,7 +53,10 @@ export class CardController {
   @Post('credit')
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Apply for a new credit card' })
-  async applyCredit(@Req() req: any, @Body() dto: CreateCreditCardDto) {
+  async applyCredit(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateCreditCardDto,
+  ) {
     const customerId = req.user.userId;
     return this.cardService.applyCreditCard(customerId, dto);
   }
@@ -57,7 +64,7 @@ export class CardController {
   @Post(':id/activate')
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Activate an inactive credit/debit card' })
-  async activate(@Req() req: any, @Param('id') id: string) {
+  async activate(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const customerId = req.user.userId;
     return this.cardService.activateCard(customerId, id);
   }
@@ -66,7 +73,7 @@ export class CardController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Freeze, unfreeze, block, or replace card' })
   async updateStatus(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateCardStatusDto,
   ) {
@@ -78,7 +85,7 @@ export class CardController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Update usage toggles and transaction limits' })
   async updateLimits(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateLimitsDto,
   ) {
@@ -90,7 +97,7 @@ export class CardController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Set or update card PIN' })
   async setPin(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: SetPinDto,
   ) {
@@ -102,7 +109,7 @@ export class CardController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Pay credit card bill outstanding balance' })
   async payBill(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: PayBillDto,
   ) {
@@ -114,7 +121,7 @@ export class CardController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Convert card purchase transaction to EMI' })
   async convertEmi(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('transactionId') transactionId: string,
     @Body() dto: ConvertEmiDto,
   ) {
@@ -125,7 +132,10 @@ export class CardController {
   @Post(':id/redeem-rewards')
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Redeem credit card rewards points for cashback' })
-  async redeemRewards(@Req() req: any, @Param('id') id: string) {
+  async redeemRewards(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     const customerId = req.user.userId;
     return this.cardService.redeemRewards(customerId, id);
   }
@@ -134,7 +144,7 @@ export class CardController {
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Toggle auto-pay switch for credit card' })
   async toggleAutoPay(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: ToggleAutoPayDto,
   ) {

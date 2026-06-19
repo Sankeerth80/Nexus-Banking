@@ -46,6 +46,11 @@ export class MetricsService {
     help: 'Pending customer approval workflow items.',
     registers: [this.registry],
   });
+  private readonly pendingKyc = new Gauge({
+    name: 'nexus_banking_pending_kyc',
+    help: 'Pending KYC workflow items awaiting review.',
+    registers: [this.registry],
+  });
   private readonly fraudAlerts = new Gauge({
     name: 'nexus_banking_fraud_alerts_total',
     help: 'Fraud alerts recorded by the simulation risk layer.',
@@ -61,6 +66,7 @@ export class MetricsService {
     });
     this.transactionVolume.set(0);
     this.pendingApprovals.set(0);
+    this.pendingKyc.set(0);
     this.fraudAlerts.set(0);
   }
 

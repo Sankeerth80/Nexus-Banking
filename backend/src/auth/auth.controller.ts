@@ -12,10 +12,32 @@ import {
 import type { Request, Response } from 'express';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { AuthService, LoginResponse } from './auth.service';
+import { AuthService } from './auth.service';
 import { CaptchaGuard } from '../common/guards/captcha.guard';
 import { RateLimiterGuard } from '../common/guards/rate-limiter.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type {
+  AuthenticatedRequest,
+  CookieRequest,
+} from '../common/types/authenticated-request';
+
+type RegisterCustomerBody = {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+};
+
+type LoginBody = {
+  email: string;
+  password: string;
+};
+
+type ResetPasswordBody = {
+  email: string;
+  code: string;
+  password: string;
+};
 
 @ApiTags('auth')
 @Controller('auth')
@@ -25,7 +47,7 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get current user profile from session' })
-  async me(@Req() req: any) {
+  me(@Req() req: AuthenticatedRequest) {
     return {
       userId: req.user.userId,
       email: req.user.email,
@@ -40,7 +62,7 @@ export class AuthController {
     status: 201,
     description: 'Customer profile successfully created.',
   })
-  async register(@Body() dto: any) {
+  async register(@Body() dto: RegisterCustomerBody) {
     return this.authService.registerCustomer(dto);
   }
 
@@ -53,8 +75,8 @@ export class AuthController {
     description: 'Login details verified. Triggers 2FA or OTP.',
   })
   async login(
-    @Body() dto: any,
-    @Req() req: Request,
+    @Body() dto: LoginBody,
+    @Req() req: CookieRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
     const ip = req.ip || 'unknown';
@@ -145,7 +167,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Log out active session' })
   @ApiResponse({ status: 200, description: 'Session terminated.' })
-  async logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Req() req: AuthenticatedRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const userId = req.user.userId;
     await this.authService.logout(userId);
     this.clearCookies(res);
@@ -156,7 +181,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request email verification code' })
-  async verifyEmailRequest(@Req() req: any) {
+  async verifyEmailRequest(@Req() req: AuthenticatedRequest) {
     const { userId, email } = req.user;
     await this.authService.sendEmailVerification(userId, email);
     return { status: 'ok' };
@@ -166,7 +191,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address' })
-  async verifyEmail(@Req() req: any, @Body() dto: { code: string }) {
+  async verifyEmail(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: { code: string },
+  ) {
     const userId = req.user.userId;
     await this.authService.verifyEmail(userId, dto.code);
     return { status: 'ok' };
@@ -185,9 +213,7 @@ export class AuthController {
   @UseGuards(CaptchaGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Submit password reset' })
-  async resetPassword(
-    @Body() dto: { email: string; code: string; password: any },
-  ) {
+  async resetPassword(@Body() dto: ResetPasswordBody) {
     await this.authService.resetPassword(dto);
     return { status: 'ok' };
   }
@@ -196,7 +222,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get TOTP 2FA secret and QR code' })
-  async setup2Fa(@Req() req: any) {
+  async setup2Fa(@Req() req: AuthenticatedRequest) {
     return this.authService.setup2Fa(req.user.userId);
   }
 
@@ -204,7 +230,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validate and enable 2FA' })
-  async enable2Fa(@Req() req: any, @Body() dto: { code: string }) {
+  async enable2Fa(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: { code: string },
+  ) {
     await this.authService.enable2Fa(req.user.userId, dto.code);
     return { status: 'ok' };
   }

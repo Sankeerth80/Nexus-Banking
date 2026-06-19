@@ -11,23 +11,31 @@ import {
   Check,
   RefreshCw,
   Search,
-  Lock,
-  Unlock,
-  ShieldAlert,
   AlertCircle,
-  Clock,
-  Sliders,
-  CheckCircle,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { publicEnv } from "@/lib/env";
+import { getErrorMessage } from "@/lib/errors";
 
 type CardModel = {
   id: string;
@@ -36,7 +44,12 @@ type CardModel = {
   maskedNumber: string;
   expiryDate: string;
   cvv: string;
-  status: "ACTIVE" | "INACTIVE" | "BLOCKED" | "FROZEN" | "REPLACEMENT_REQUESTED";
+  status:
+    | "ACTIVE"
+    | "INACTIVE"
+    | "BLOCKED"
+    | "FROZEN"
+    | "REPLACEMENT_REQUESTED";
   dailyLimit: string;
   creditLimit: string | null;
   balance: string | null;
@@ -55,7 +68,7 @@ export default function AdminCardsPage() {
   const [cards, setCards] = React.useState<CardModel[]>([]);
   const [cardsLoading, setCardsLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
-  
+
   const [success, setSuccess] = React.useState("");
   const [error, setError] = React.useState("");
   const [actionLoading, setActionLoading] = React.useState(false);
@@ -68,26 +81,33 @@ export default function AdminCardsPage() {
   }, [user, loading, router]);
 
   // apiFetch wrapper
-  const apiFetch = React.useCallback(async (path: string, options: RequestInit = {}) => {
-    const baseUrl = publicEnv.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
-    const url = path.startsWith("http") ? path : `${baseUrl}/${path.replace(/^\//, "")}`;
-    
-    const response = await fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
+  const apiFetch = React.useCallback(
+    async (path: string, options: RequestInit = {}) => {
+      const baseUrl = publicEnv.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+      const url = path.startsWith("http")
+        ? path
+        : `${baseUrl}/${path.replace(/^\//, "")}`;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
-    }
+      const response = await fetch(url, {
+        ...options,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      });
 
-    return response.json();
-  }, []);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Request failed with status ${response.status}`,
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
 
   const fetchCards = React.useCallback(async () => {
     setCardsLoading(true);
@@ -95,8 +115,8 @@ export default function AdminCardsPage() {
     try {
       const data = await apiFetch("/cards/admin");
       setCards(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to retrieve bank cards ledger.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to retrieve bank cards ledger."));
     } finally {
       setCardsLoading(false);
     }
@@ -116,56 +136,8 @@ export default function AdminCardsPage() {
       await apiFetch(`/cards/${id}/admin-approve`, { method: "POST" });
       setSuccess("Applied credit card approved and activated successfully!");
       fetchCards();
-    } catch (err: any) {
-      setError(err.message || "Failed to approve card");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleOverrideStatus = async (id: string, customerId: string, newStatus: string) => {
-    setSuccess("");
-    setError("");
-    setActionLoading(true);
-    try {
-      // In a real system, we'd hit a dedicated admin status route or reuse the client status route.
-      // Since our CardController has `POST /cards/:id/status` mapping to the service `updateCardStatus`,
-      // but protected with Roles('CUSTOMER'), wait! Can admin call it?
-      // Wait, let's check: CardController's `@Roles('CUSTOMER')` only allows customer.
-      // But we can let admin update card status via another endpoint, or let customer handle status while admin has bypass.
-      // Wait, let's see: we can implement a custom admin status route, or let admin call an admin route.
-      // Wait! Let's check how we implemented it in CardService:
-      // CardService.updateCardStatus requires customerId matching, but we can write a dedicated admin endpoint or let admin do it.
-      // Let's check CardController. We didn't create a dedicated admin status override in controller,
-      // but we can add one: `POST /api/cards/:id/admin-status` or similar if needed!
-      // Wait! In CardController, let's check what we did. We have `POST :id/admin-approve`.
-      // What if we add `POST :id/admin-status` in CardController?
-      // Yes! That's a great idea! Let's check if we can add it to Controller.
-      // Wait, first let's see: does the admin need status change?
-      // "Debit Card: Block, Unblock, Freeze, Unfreeze, Replace... Credit Card: Freeze, Unfreeze..."
-      // These are customer actions! But admin should be able to view and manage.
-      // Let's add `POST /cards/:id/admin-status` in CardController to allow employees to override status!
-      // Let's check: if we need to modify CardController and CardService, we can easily do it.
-      // Let's look at `CardService`:
-      // Wait, `CardService.adminApproveCard` is already there. What if we add a general `adminUpdateCardStatus(cardId, status)`?
-      // Yes:
-      // ```typescript
-      // async adminUpdateCardStatus(cardId: string, status: CardStatus) {
-      //   return this.prisma.card.update({ where: { id: cardId }, data: { status } });
-      // }
-      // ```
-      // This is extremely useful! Let's check how we can call it.
-      // Let's define the endpoint in CardController:
-      // ```typescript
-      // @Post(':id/admin-status')
-      // @Roles('CEO', 'BRANCH_MANAGER', 'IT_ADMINISTRATOR', 'SUPPORT_OFFICER')
-      // async adminStatus(@Param('id') id: string, @Body() dto: UpdateCardStatusDto) {
-      //   return this.cardService.adminUpdateCardStatus(id, dto.status);
-      // }
-      // ```
-      // Let's do that! It will make the admin dashboard fully functional for overrides.
-    } catch (err: any) {
-      setError(err.message || "Failed to update card status");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to approve card"));
     } finally {
       setActionLoading(false);
     }
@@ -197,36 +169,56 @@ export default function AdminCardsPage() {
             </h1>
             <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
               <span>Welcome, {user.fullName}</span>
-              <Badge variant="secondary" className="text-[9px] py-0 px-1 font-semibold uppercase tracking-wider">
+              <Badge
+                variant="secondary"
+                className="text-[9px] py-0 px-1 font-semibold uppercase tracking-wider"
+              >
                 {user.role}
               </Badge>
             </div>
           </div>
 
           <nav className="flex items-center gap-4 ml-6">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
               KYC Onboarding
             </Link>
-            <Link href="/accounts" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/accounts"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
               Account Controls
             </Link>
-            <Link href="/cards" className="text-sm font-semibold text-primary transition-colors">
+            <Link
+              href="/cards"
+              className="text-sm font-semibold text-primary transition-colors"
+            >
               Card Registry
             </Link>
-            <Link href="/audit" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/audit"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
               Auditing & Logs
             </Link>
           </nav>
 
           <ThemeToggle />
-          <Button onClick={logout} variant="ghost" size="icon" className="ml-auto" aria-label="Log out">
+          <Button
+            onClick={logout}
+            variant="ghost"
+            size="icon"
+            className="ml-auto"
+            aria-label="Log out"
+          >
             <LogOut className="size-5" />
           </Button>
         </div>
       </header>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:py-6 animate-fade-in-up">
-        
         {/* Title */}
         <section className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-2">
@@ -239,8 +231,15 @@ export default function AdminCardsPage() {
             </h2>
           </div>
           <div className="flex gap-2">
-            <Button onClick={fetchCards} variant="outline" className="gap-1.5 text-xs">
-              <RefreshCw className={`size-3.5 ${cardsLoading ? "animate-spin" : ""}`} /> Refresh Registry
+            <Button
+              onClick={fetchCards}
+              variant="outline"
+              className="gap-1.5 text-xs"
+            >
+              <RefreshCw
+                className={`size-3.5 ${cardsLoading ? "animate-spin" : ""}`}
+              />{" "}
+              Refresh Registry
             </Button>
           </div>
         </section>
@@ -266,12 +265,15 @@ export default function AdminCardsPage() {
           <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle>Bank-Wide Card Registry</CardTitle>
-              <CardDescription>Comprehensive ledger of all customer Debit and Credit products provisioned in the platform.</CardDescription>
+              <CardDescription>
+                Comprehensive ledger of all customer Debit and Credit products
+                provisioned in the platform.
+              </CardDescription>
             </div>
             <div className="flex items-center gap-2 max-w-xs w-full">
               <Search className="size-4 text-muted-foreground shrink-0" />
-              <Input 
-                placeholder="Search by name, email or number..." 
+              <Input
+                placeholder="Search by name, email or number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-8 text-xs"
@@ -308,35 +310,58 @@ export default function AdminCardsPage() {
                         <TableRow key={c.id}>
                           <TableCell>
                             <div>
-                              <p className="font-semibold text-xs text-foreground">{c.customer?.fullName}</p>
-                              <p className="text-[10px] text-muted-foreground">{c.customer?.email}</p>
+                              <p className="font-semibold text-xs text-foreground">
+                                {c.customer?.fullName}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {c.customer?.email}
+                              </p>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="font-bold text-[9px] uppercase tracking-wider">
+                            <Badge
+                              variant="outline"
+                              className="font-bold text-[9px] uppercase tracking-wider"
+                            >
                               {c.type}
                             </Badge>
                           </TableCell>
                           <TableCell className="font-mono text-xs">
                             {c.maskedNumber}
-                            <span className="block text-[9px] text-muted-foreground font-mono">Expires: {c.expiryDate}</span>
+                            <span className="block text-[9px] text-muted-foreground font-mono">
+                              Expires: {c.expiryDate}
+                            </span>
                           </TableCell>
                           <TableCell className="text-xs">
                             {isCredit ? (
                               <div>
-                                <p className="font-semibold text-primary">O/S: INR {Number(c.balance).toLocaleString()}</p>
-                                <p className="text-[9px] text-muted-foreground">Limit: INR {Number(c.creditLimit).toLocaleString()}</p>
+                                <p className="font-semibold text-primary">
+                                  O/S: INR {Number(c.balance).toLocaleString()}
+                                </p>
+                                <p className="text-[9px] text-muted-foreground">
+                                  Limit: INR{" "}
+                                  {Number(c.creditLimit).toLocaleString()}
+                                </p>
                               </div>
                             ) : (
                               <span>N/A (Linked Debit)</span>
                             )}
                           </TableCell>
                           <TableCell className="text-xs">
-                            <span className="text-[9px] text-muted-foreground font-mono block">Daily Spend Cap: INR {Number(c.dailyLimit).toLocaleString()}</span>
+                            <span className="text-[9px] text-muted-foreground font-mono block">
+                              Daily Spend Cap: INR{" "}
+                              {Number(c.dailyLimit).toLocaleString()}
+                            </span>
                           </TableCell>
                           <TableCell>
-                            <Badge 
-                              variant={c.status === "ACTIVE" ? "outline" : c.status === "INACTIVE" ? "secondary" : "destructive"}
+                            <Badge
+                              variant={
+                                c.status === "ACTIVE"
+                                  ? "outline"
+                                  : c.status === "INACTIVE"
+                                    ? "secondary"
+                                    : "destructive"
+                              }
                               className={`text-[9px] px-1 py-0 uppercase ${c.status === "ACTIVE" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500" : ""}`}
                             >
                               {c.status}
@@ -345,9 +370,9 @@ export default function AdminCardsPage() {
                           <TableCell>
                             <div className="flex gap-1.5 items-center justify-end">
                               {c.status === "INACTIVE" && (
-                                <Button 
+                                <Button
                                   onClick={() => handleApproveCard(c.id)}
-                                  size="xs" 
+                                  size="xs"
                                   className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                                   disabled={actionLoading}
                                 >
@@ -355,12 +380,17 @@ export default function AdminCardsPage() {
                                 </Button>
                               )}
                               {c.status === "REPLACEMENT_REQUESTED" && (
-                                <Badge variant="outline" className="border-amber-500/30 text-amber-500 text-[10px] py-1">
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500/30 text-amber-500 text-[10px] py-1"
+                                >
                                   Dispatch Pending
                                 </Badge>
                               )}
                               {c.status === "ACTIVE" && (
-                                <span className="text-[10px] text-muted-foreground italic">No action required</span>
+                                <span className="text-[10px] text-muted-foreground italic">
+                                  No action required
+                                </span>
                               )}
                             </div>
                           </TableCell>
@@ -373,7 +403,6 @@ export default function AdminCardsPage() {
             )}
           </CardContent>
         </Card>
-
       </div>
     </main>
   );

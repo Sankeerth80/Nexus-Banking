@@ -9,6 +9,8 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_SOCKET_URL: z.string().url().default("http://localhost:4000"),
   NEXT_PUBLIC_DEMO_MODE: z.enum(["true"]).default("true"),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional().default(""),
+  NEXT_PUBLIC_DEMO_ADMIN_EMAIL: z.string().email().default("admin@gmail.com"),
+  NEXT_PUBLIC_DEMO_ADMIN_PASSWORD: z.string().optional().default(""),
 });
 
 export const publicEnv = publicEnvSchema.parse({
@@ -17,4 +19,6 @@ export const publicEnv = publicEnvSchema.parse({
   NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
   NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  NEXT_PUBLIC_DEMO_ADMIN_EMAIL: process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL,
+  NEXT_PUBLIC_DEMO_ADMIN_PASSWORD: process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD,
 });

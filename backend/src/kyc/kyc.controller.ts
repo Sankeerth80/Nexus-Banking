@@ -14,11 +14,14 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { EmployeeRole } from '@prisma/client';
-
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import {
+  assertEmployeeRole,
+  type AuthenticatedRequest,
+  type UploadedBankingFile,
+} from '../common/types/authenticated-request';
 import { KycService } from './kyc.service';
 import { ReviewKycDto, SubmitKycDto, UpdateStatusDto } from './dto/kyc.dto';
 
@@ -36,7 +39,7 @@ export class KycController {
   })
   @ApiResponse({ status: 201, description: 'File uploaded successfully.' })
   async upload(
-    @UploadedFile() file: any,
+    @UploadedFile() file: UploadedBankingFile | undefined,
     @Body('type') type: 'PHOTO' | 'SIGNATURE' | 'ID_PROOF',
   ) {
     if (!file) {
@@ -58,7 +61,7 @@ export class KycController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Submit KYC documentation details' })
   @ApiResponse({ status: 200, description: 'KYC submitted successfully.' })
-  async submit(@Req() req: any, @Body() dto: SubmitKycDto) {
+  async submit(@Req() req: AuthenticatedRequest, @Body() dto: SubmitKycDto) {
     const customerId = req.user.userId;
     return this.kycService.submitKyc(customerId, dto);
   }
@@ -67,7 +70,7 @@ export class KycController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Get current customer KYC status' })
-  async status(@Req() req: any) {
+  async status(@Req() req: AuthenticatedRequest) {
     const customerId = req.user.userId;
     return this.kycService.getKycStatus(customerId);
   }
@@ -111,9 +114,9 @@ export class KycController {
   )
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Submit a review for a KYC stage' })
-  async review(@Req() req: any, @Body() dto: ReviewKycDto) {
+  async review(@Req() req: AuthenticatedRequest, @Body() dto: ReviewKycDto) {
     const reviewerId = req.user.userId;
-    const reviewerRole = req.user.role as EmployeeRole;
+    const reviewerRole = assertEmployeeRole(req.user.role);
     return this.kycService.reviewKyc(reviewerId, reviewerRole, dto);
   }
 

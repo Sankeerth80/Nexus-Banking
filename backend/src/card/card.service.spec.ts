@@ -10,6 +10,10 @@ import { CardService } from './card.service';
 import { PrismaService } from '../database/prisma.service';
 import { CardStatus, CardType } from '@prisma/client';
 
+type MockFindArgs = {
+  include?: Record<string, unknown>;
+};
+
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('mocked-hash'),
 }));
@@ -224,7 +228,7 @@ describe('CardService', () => {
         status: CardStatus.INACTIVE,
         creditLimit: 100000,
       };
-      mockPrisma.card.findUnique.mockImplementation((args: any) => {
+      mockPrisma.card.findUnique.mockImplementation((args: MockFindArgs) => {
         if (args.include?.transactions) {
           return Promise.resolve({
             ...mockCard,

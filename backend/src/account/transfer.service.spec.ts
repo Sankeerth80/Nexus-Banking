@@ -13,6 +13,13 @@ import { EmailService } from '../email/email.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { TransferStatus, TransferType } from '@prisma/client';
 
+type MockFindArgs = {
+  where: {
+    id?: string;
+  };
+  include?: Record<string, unknown>;
+};
+
 jest.mock('speakeasy', () => ({
   totp: {
     verify: jest.fn(),
@@ -203,7 +210,7 @@ describe('TransferService', () => {
         id: customerId,
         status: 'APPROVED',
       });
-      mockPrisma.account.findUnique.mockImplementation((args: any) => {
+      mockPrisma.account.findUnique.mockImplementation((args: MockFindArgs) => {
         if (args.where.id === 'acc-src') {
           return Promise.resolve({
             id: 'acc-src',
@@ -225,7 +232,7 @@ describe('TransferService', () => {
         id: customerId,
         status: 'APPROVED',
       });
-      mockPrisma.account.findUnique.mockImplementation((args: any) => {
+      mockPrisma.account.findUnique.mockImplementation((args: MockFindArgs) => {
         if (args.where.id === 'acc-src') {
           return Promise.resolve({
             id: 'acc-src',
@@ -251,7 +258,7 @@ describe('TransferService', () => {
         id: customerId,
         status: 'APPROVED',
       });
-      mockPrisma.account.findUnique.mockImplementation((args: any) => {
+      mockPrisma.account.findUnique.mockImplementation((args: MockFindArgs) => {
         if (args.where.id === 'acc-src') {
           return Promise.resolve({
             id: 'acc-src',
@@ -280,7 +287,7 @@ describe('TransferService', () => {
         twoFactorEnabled: false,
       };
       mockPrisma.customer.findUnique.mockResolvedValueOnce(mockCustomer);
-      mockPrisma.account.findUnique.mockImplementation((args: any) => {
+      mockPrisma.account.findUnique.mockImplementation((args: MockFindArgs) => {
         if (args.where.id === 'acc-src') {
           return Promise.resolve({
             id: 'acc-src',
@@ -459,12 +466,14 @@ describe('TransferService', () => {
         customer: { email: 'customer@nexus.com' },
       };
 
-      mockPrisma.transfer.findUnique.mockImplementation((args: any) => {
-        if (args.include?.customer) {
-          return Promise.resolve(mockTransfer);
-        }
-        return Promise.resolve({ ...mockTransfer, customer: undefined });
-      });
+      mockPrisma.transfer.findUnique.mockImplementation(
+        (args: MockFindArgs) => {
+          if (args.include?.customer) {
+            return Promise.resolve(mockTransfer);
+          }
+          return Promise.resolve({ ...mockTransfer, customer: undefined });
+        },
+      );
 
       mockRedis.getOtp.mockResolvedValueOnce('123456');
       mockRedis.deleteOtp.mockResolvedValueOnce('OK');
@@ -529,12 +538,14 @@ describe('TransferService', () => {
         customer: { email: 'customer@nexus.com' },
       };
 
-      mockPrisma.transfer.findUnique.mockImplementation((args: any) => {
-        if (args.include?.customer) {
-          return Promise.resolve(mockTransfer);
-        }
-        return Promise.resolve({ ...mockTransfer, customer: undefined });
-      });
+      mockPrisma.transfer.findUnique.mockImplementation(
+        (args: MockFindArgs) => {
+          if (args.include?.customer) {
+            return Promise.resolve(mockTransfer);
+          }
+          return Promise.resolve({ ...mockTransfer, customer: undefined });
+        },
+      );
 
       mockRedis.getOtp.mockResolvedValueOnce('123456');
       mockRedis.deleteOtp.mockResolvedValueOnce('OK');
@@ -618,31 +629,33 @@ describe('TransferService', () => {
 
       // We need executeTransfer to succeed/mock for each.
       // executeTransfer is private but it calls prisma.$transaction which we mock.
-      mockPrisma.transfer.findUnique.mockImplementation((args: any) => {
-        if (args.where.id === 'trf-1') {
-          return Promise.resolve({
-            id: 'trf-1',
-            reference: 'TRF-S1',
-            amount: 100,
-            sourceAccountId: 'acc-src',
-            destinationAccountId: 'acc-dest',
-            type: TransferType.OWN_ACCOUNT,
-            customer: { email: 'test@nexus.com' },
-          });
-        }
-        if (args.where.id === 'trf-2') {
-          return Promise.resolve({
-            id: 'trf-2',
-            reference: 'TRF-S2',
-            amount: 200,
-            sourceAccountId: 'acc-src',
-            destinationAccountId: 'acc-dest',
-            type: TransferType.OWN_ACCOUNT,
-            customer: { email: 'test@nexus.com' },
-          });
-        }
-        return Promise.resolve(null);
-      });
+      mockPrisma.transfer.findUnique.mockImplementation(
+        (args: MockFindArgs) => {
+          if (args.where.id === 'trf-1') {
+            return Promise.resolve({
+              id: 'trf-1',
+              reference: 'TRF-S1',
+              amount: 100,
+              sourceAccountId: 'acc-src',
+              destinationAccountId: 'acc-dest',
+              type: TransferType.OWN_ACCOUNT,
+              customer: { email: 'test@nexus.com' },
+            });
+          }
+          if (args.where.id === 'trf-2') {
+            return Promise.resolve({
+              id: 'trf-2',
+              reference: 'TRF-S2',
+              amount: 200,
+              sourceAccountId: 'acc-src',
+              destinationAccountId: 'acc-dest',
+              type: TransferType.OWN_ACCOUNT,
+              customer: { email: 'test@nexus.com' },
+            });
+          }
+          return Promise.resolve(null);
+        },
+      );
 
       mockPrisma.account.findUnique.mockResolvedValue({
         id: 'acc-src',
@@ -776,10 +789,12 @@ describe('TransferService', () => {
         customer: { email: 'customer@nexus.com' },
       };
 
-      mockPrisma.transfer.findUnique.mockImplementation((args: any) => {
-        if (args.include?.customer) return Promise.resolve(mockTransfer);
-        return Promise.resolve({ ...mockTransfer, customer: undefined });
-      });
+      mockPrisma.transfer.findUnique.mockImplementation(
+        (args: MockFindArgs) => {
+          if (args.include?.customer) return Promise.resolve(mockTransfer);
+          return Promise.resolve({ ...mockTransfer, customer: undefined });
+        },
+      );
 
       mockRedis.getOtp.mockResolvedValueOnce('123456');
       mockRedis.deleteOtp.mockResolvedValueOnce('OK');
@@ -829,10 +844,12 @@ describe('TransferService', () => {
         customer: { email: 'customer@nexus.com' },
       };
 
-      mockPrisma.transfer.findUnique.mockImplementation((args: any) => {
-        if (args.include?.customer) return Promise.resolve(mockTransfer);
-        return Promise.resolve({ ...mockTransfer, customer: undefined });
-      });
+      mockPrisma.transfer.findUnique.mockImplementation(
+        (args: MockFindArgs) => {
+          if (args.include?.customer) return Promise.resolve(mockTransfer);
+          return Promise.resolve({ ...mockTransfer, customer: undefined });
+        },
+      );
 
       mockRedis.getOtp.mockResolvedValueOnce('123456');
       mockPrisma.transfer.count.mockResolvedValueOnce(2); // 2 previous transfers in last 2 mins (+ current = 3)

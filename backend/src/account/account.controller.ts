@@ -14,6 +14,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 import { AccountService } from './account.service';
 import { CreateAccountDto, UpdateAccountDto } from './dto/account.dto';
 
@@ -26,7 +27,7 @@ export class AccountController {
   @Get()
   @Roles('CUSTOMER')
   @ApiOperation({ summary: 'Get all accounts for active customer' })
-  async getMyAccounts(@Req() req: any) {
+  async getMyAccounts(@Req() req: AuthenticatedRequest) {
     const customerId = req.user.userId;
     return this.accountService.getAccountsForCustomer(customerId);
   }
@@ -48,7 +49,10 @@ export class AccountController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new account' })
-  async createAccount(@Req() req: any, @Body() dto: CreateAccountDto) {
+  async createAccount(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateAccountDto,
+  ) {
     // If CUSTOMER, they can only create accounts for themselves
     if (req.user.role === 'CUSTOMER' && dto.customerId !== req.user.userId) {
       throw new ForbiddenException(
@@ -86,7 +90,10 @@ export class AccountController {
   @ApiOperation({
     summary: 'Generate statement and return MinIO download link',
   })
-  async getStatement(@Req() req: any, @Param('id') id: string) {
+  async getStatement(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     // If customer, verify they own this account
     if (req.user.role === 'CUSTOMER') {
       const myAccounts = await this.accountService.getAccountsForCustomer(
