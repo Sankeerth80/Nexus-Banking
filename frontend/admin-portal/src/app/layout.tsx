@@ -28,13 +28,22 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="flex min-h-full flex-col antialiased">
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider>{children}</TooltipProvider>
+            <TooltipProvider>
+              <div id="main-content" className="contents">
+                {children}
+              </div>
+              <div aria-live="polite" aria-atomic="true" className="sr-only" />
+            </TooltipProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

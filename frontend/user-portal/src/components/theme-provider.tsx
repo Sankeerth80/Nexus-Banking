@@ -2,24 +2,49 @@
 
 import * as React from "react";
 
-type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark";
+export type ThemePreference = ThemeMode | "system";
 
 const themeStorageKey = "theme";
 const darkQuery = "(prefers-color-scheme: dark)";
+export const themePreferenceEvent = "nexus-theme-preference";
 
 function readSystemTheme(): ThemeMode {
   return window.matchMedia(darkQuery).matches ? "dark" : "light";
 }
 
-function readStoredTheme(): ThemeMode | null {
-  const storedTheme = window.localStorage.getItem(themeStorageKey);
-
-  return storedTheme === "dark" || storedTheme === "light" ? storedTheme : null;
+function isThemePreference(value: string | null): value is ThemePreference {
+  return value === "dark" || value === "light" || value === "system";
 }
 
-function applyTheme(theme: ThemeMode) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
-  document.documentElement.style.colorScheme = theme;
+export function readThemePreference(): ThemePreference {
+  const storedTheme = window.localStorage.getItem(themeStorageKey);
+
+  return isThemePreference(storedTheme) ? storedTheme : "system";
+}
+
+function resolveTheme(preference: ThemePreference): ThemeMode {
+  return preference === "system" ? readSystemTheme() : preference;
+}
+
+export function applyThemePreference(preference: ThemePreference) {
+  const resolvedTheme = resolveTheme(preference);
+  const root = document.documentElement;
+
+  root.classList.add("theme-transition");
+  root.classList.toggle("dark", resolvedTheme === "dark");
+  root.dataset.themePreference = preference;
+  root.style.colorScheme = resolvedTheme;
+  window.dispatchEvent(
+    new CustomEvent<ThemePreference>(themePreferenceEvent, {
+      detail: preference,
+    }),
+  );
+}
+
+export function setThemePreference(preference: ThemePreference) {
+  window.localStorage.setItem(themeStorageKey, preference);
+  applyThemePreference(preference);
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -27,7 +52,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const mediaQuery = window.matchMedia(darkQuery);
 
     const applyResolvedTheme = () => {
-      applyTheme(readStoredTheme() ?? readSystemTheme());
+      applyThemePreference(readThemePreference());
     };
 
     const handleStorage = (event: StorageEvent) => {
@@ -37,7 +62,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleSystemThemeChange = () => {
-      if (!readStoredTheme()) {
+      if (readThemePreference() === "system") {
         applyResolvedTheme();
       }
     };

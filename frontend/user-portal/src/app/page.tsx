@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useAuth } from "@/components/auth-provider";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { PortalNavigation } from "@/components/portal-navigation";
 import {
   ArrowRightLeft,
   BadgeCheck,
@@ -541,7 +541,7 @@ export default function Home() {
   // Render 1: Email Verification Required
   if (!user.emailVerified) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,oklch(0.92_0.05_184_/_0.35),transparent_32rem)] px-4 py-12">
+      <div className="flex min-h-screen items-center justify-center bg-banking-surface px-4 py-12">
         <Card className="w-full max-w-md border-border/60 bg-card/65 backdrop-blur-md shadow-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-2">
@@ -618,7 +618,7 @@ export default function Home() {
   // Render 2: KYC Documentation Required
   if (user.status === "DRAFT" || user.status === "KYC_REVIEW") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,oklch(0.92_0.05_184_/_0.35),transparent_32rem)] px-4 py-12">
+      <div className="flex min-h-screen items-center justify-center bg-banking-surface px-4 py-12">
         <Card className="w-full max-w-lg border-border/60 bg-card/65 backdrop-blur-md shadow-2xl p-4">
           <CardHeader className="text-center">
             <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-2">
@@ -702,7 +702,7 @@ export default function Home() {
     };
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,oklch(0.92_0.05_184_/_0.35),transparent_32rem)] px-4 py-12">
+      <div className="flex min-h-screen items-center justify-center bg-banking-surface px-4 py-12">
         <Card className="w-full max-w-xl border-border/60 bg-card/65 backdrop-blur-md shadow-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 mb-2">
@@ -794,9 +794,9 @@ export default function Home() {
   const balance = activeAccount ? Number(activeAccount.balance) : 0;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,oklch(0.92_0.05_184_/_0.35),transparent_32rem)]">
-      <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
+    <main className="min-h-screen bg-banking-surface">
+      <header className="enterprise-header">
+        <div className="mx-auto flex w-full max-w-7xl min-w-0 items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
           <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
             <Landmark className="size-5" aria-hidden />
           </div>
@@ -809,26 +809,7 @@ export default function Home() {
             </p>
           </div>
 
-          <nav className="flex items-center gap-4 ml-6">
-            <Link
-              href="/"
-              className="text-sm font-semibold text-primary transition-colors"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/accounts"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Accounts & Beneficiaries
-            </Link>
-            <Link
-              href="/cards"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Card Management
-            </Link>
-          </nav>
+          <PortalNavigation />
 
           <div className="ml-auto hidden min-w-64 items-center gap-2 md:flex">
             <Search className="size-4 text-muted-foreground" aria-hidden />
@@ -849,7 +830,7 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:py-6 animate-fade-in-up">
+      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:py-6 page-enter">
         {/* Verification banner */}
         <section className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-3">

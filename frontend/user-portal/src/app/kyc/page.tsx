@@ -148,7 +148,7 @@ export default function KycPage() {
   if (!user) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_right,oklch(0.92_0.05_184_/_0.25),transparent_32rem)] px-4 py-12 items-center justify-center">
+    <div className="flex min-h-screen flex-col bg-banking-surface px-4 py-12 items-center justify-center">
       <div className="w-full max-w-2xl space-y-6">
         <div className="flex flex-col items-center text-center space-y-2">
           <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">

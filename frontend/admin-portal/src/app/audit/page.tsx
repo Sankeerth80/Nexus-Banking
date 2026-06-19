@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useAuth } from "@/components/auth-provider";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { PortalNavigation } from "@/components/portal-navigation";
 import {
   Building2,
   CheckCircle2,
@@ -163,9 +163,9 @@ export default function AdminAuditPage() {
   if (loading || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,oklch(0.92_0.05_184_/_0.35),transparent_32rem)]">
-      <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
+    <main className="min-h-screen bg-banking-surface">
+      <header className="enterprise-header">
+        <div className="mx-auto flex w-full max-w-7xl min-w-0 items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
           <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
             <Landmark className="size-5" />
           </div>
@@ -184,39 +184,14 @@ export default function AdminAuditPage() {
             </div>
           </div>
 
-          <nav className="flex items-center gap-4 ml-6">
-            <Link
-              href="/"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              KYC Onboarding
-            </Link>
-            <Link
-              href="/accounts"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Account Controls
-            </Link>
-            <Link
-              href="/cards"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Card Registry
-            </Link>
-            <Link
-              href="/audit"
-              className="text-sm font-semibold text-primary transition-colors"
-            >
-              Auditing & Logs
-            </Link>
-          </nav>
+          <PortalNavigation />
 
           <ThemeToggle />
           <Button
             onClick={logout}
             variant="ghost"
             size="icon"
-            className="ml-auto"
+            className="md:ml-auto"
             aria-label="Log out"
           >
             <LogOut className="size-5" />
