@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const devServerUrl = "http://127.0.0.1:3102";
+const portalBaseUrl = "http://127.0.0.1:3001";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -13,17 +13,10 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: devServerUrl,
+    baseURL: portalBaseUrl,
+    screenshot: "only-on-failure",
     trace: "on-first-retry",
-  },
-  webServer: {
-    command: "npm run dev -- --hostname 127.0.0.1 --port 3102",
-    env: {
-      NEXT_PUBLIC_API_BASE_URL: `${devServerUrl}/api`,
-    },
-    url: devServerUrl,
-    reuseExistingServer: false,
-    timeout: 120_000,
+    video: "retain-on-failure",
   },
   projects: [
     {

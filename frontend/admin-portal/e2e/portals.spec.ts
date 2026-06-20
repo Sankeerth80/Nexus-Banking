@@ -32,7 +32,7 @@ const corsHeaders = {
   "access-control-allow-credentials": "true",
   "access-control-allow-headers": "content-type",
   "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  "access-control-allow-origin": "http://127.0.0.1:3200",
+  "access-control-allow-origin": "http://127.0.0.1:3001",
 };
 
 async function fulfillJson(
